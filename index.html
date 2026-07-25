@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Quant Quest — Interview Day</title>
-<meta name="description" content="You're 22 and fresh out of college, interviewing at a quant trading firm. Clear six rounds — mental math, pattern recognition, chart reading, probability, and two live-coding challenges — to land your offer." />
+<title>Quant Quest — Career Sim</title>
+<meta name="description" content="Start out of high school or out of college, work your way to a quant interview, and see what real 2025 entry-level quant compensation looks like based on how you perform." />
 <style>
   :root{
     --bg:#EDF2EA;
@@ -117,14 +117,14 @@
   }
   .hud .label{ font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); }
   .hud .value{ font-size:19px; font-weight:600; }
-  .hud .cap-up{ color:var(--profit); }
-  .hud .cap-down{ color:var(--loss); }
 
   .eyebrow{
     font-size:11px; text-transform:uppercase; letter-spacing:.09em;
     color:var(--info); font-weight:700; margin-bottom:6px;
   }
   .prompt{ font-size:20px; margin:2px 0 18px; }
+  .lede{ color:var(--ink-soft); margin:10px 0 18px; }
+  .field-label{ font-size:13px; color:var(--ink-soft); }
 
   .options{ display:grid; gap:10px; }
   .opt{
@@ -146,6 +146,22 @@
   .opt.correct{ background:color-mix(in srgb, var(--profit) 18%, var(--surface)); border-color:var(--profit); }
   .opt.wrong{ background:color-mix(in srgb, var(--loss) 18%, var(--surface)); border-color:var(--loss); }
 
+  .path-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:420px){ .path-grid{ grid-template-columns:1fr; } }
+  .path-card{
+    text-align:left; font:inherit; background:var(--surface-2); color:var(--ink);
+    border:1px solid var(--line); border-radius:12px; padding:16px; cursor:pointer;
+  }
+  .path-card:hover{ background:var(--bg); }
+  .path-card:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  .path-title{ font-family:var(--serif); font-size:17px; margin-bottom:4px; }
+  .path-sub{ font-size:13px; color:var(--ink-soft); }
+
+  .type-target{
+    background:var(--surface-2); border:1px solid var(--line); border-radius:10px;
+    padding:12px; margin:10px 0; font-size:14.5px; line-height:1.55;
+  }
+
   .btn{
     font:inherit; font-weight:600; font-size:15px;
     background:var(--accent); color:var(--accent-ink);
@@ -165,38 +181,30 @@
   }
   .feedback.correct{ border-color:var(--profit); }
   .feedback.wrong{ border-color:var(--loss); }
-  .feedback .delta{ font-weight:700; font-family:var(--mono); }
-  .feedback .delta.up{ color:var(--profit); }
-  .feedback .delta.down{ color:var(--loss); }
 
   .footer{
     margin-top:20px; padding-top:14px; border-top:1px dashed var(--line);
     display:flex; align-items:center; gap:14px;
   }
   .days{ display:flex; gap:5px; flex:1; flex-wrap:wrap; }
-  .dot{
-    width:9px; height:9px; border-radius:50%; background:var(--line);
-    flex:none;
-  }
-  .dot.done-up{ background:var(--profit); }
-  .dot.done-down{ background:var(--loss); }
+  .dot{ width:9px; height:9px; border-radius:50%; background:var(--line); flex:none; }
+  .dot.done{ background:var(--info); }
   .dot.now{ outline:2px solid var(--info); outline-offset:2px; }
   canvas#spark{ display:block; }
 
-  .stage-input{
-    display:flex; gap:8px; margin-top:4px;
-  }
+  .stage-input{ display:flex; gap:8px; margin-top:4px; }
   input[type="text"]{
     font:inherit; font-size:15px; padding:10px 12px; border-radius:10px;
     border:1px solid var(--line); background:var(--surface-2); color:var(--ink); flex:1;
   }
   input[type="text"]:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+  textarea{
+    font-family:var(--sans); font-size:14.5px; padding:10px; border-radius:10px;
+    border:1px solid var(--line); background:var(--surface-2); color:var(--ink); width:100%;
+  }
 
   textarea#codeEditor{
-    font:13.5px/1.5 var(--mono);
-    background:var(--surface-2); color:var(--ink);
-    border:1px solid var(--line); border-radius:10px;
-    padding:12px; width:100%; min-height:170px; resize:vertical;
+    font:13.5px/1.5 var(--mono); min-height:170px; resize:vertical;
     tab-size:2; -moz-tab-size:2;
   }
   textarea#codeEditor:focus-visible{ outline:2px solid var(--focus); }
@@ -207,15 +215,11 @@
   .test-row:last-child{ border-bottom:none; }
 
   .rank-badge{
-    display:inline-block; font-family:var(--serif); font-size:26px;
+    display:inline-block; font-family:var(--serif); font-size:24px;
     padding:6px 4px; margin:8px 0 4px;
   }
-  .stat-grid{
-    display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0;
-  }
-  .stat{
-    background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:10px 12px;
-  }
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0; }
+  .stat{ background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
   .stat .label{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); }
   .stat .value{ font-size:18px; font-weight:700; font-family:var(--mono); }
 
@@ -228,14 +232,6 @@
   dialog#glossary dd{ margin:2px 0 0; color:var(--ink-soft); font-size:14.5px; }
   .link-btn{ background:none; border:none; color:var(--info); font:inherit; text-decoration:underline; cursor:pointer; padding:0; }
   .link-btn:disabled{ opacity:.5; cursor:default; text-decoration:none; }
-
-  .toast{
-    position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
-    background:var(--ink); color:var(--bg); padding:9px 16px; border-radius:20px;
-    font-size:13.5px; font-weight:600; opacity:0; pointer-events:none;
-    transition:opacity .25s ease, transform .25s ease;
-  }
-  .toast.show{ opacity:1; transform:translateX(-50%) translateY(-6px); }
 </style>
 </head>
 <body>
@@ -250,8 +246,8 @@
   <h3>Interview Cheat Sheet</h3>
   <dl>
     <dt>Percent change</dt><dd>How much a price moved, as a fraction of the starting price, times 100.</dd>
-    <dt>Probability</dt><dd>How likely something is, written as a fraction: favorable outcomes ÷ total outcomes.</dd>
     <dt>Expected value</dt><dd>The average outcome you'd expect over many repeats of a bet, found by weighting each outcome by its probability.</dd>
+    <dt>Fermi estimate</dt><dd>A rough, order-of-magnitude answer built from reasonable assumptions — real interviews grade closeness, not exactness.</dd>
     <dt>Function</dt><dd>A reusable block of code that takes inputs and returns an output.</dd>
     <dt>Test case</dt><dd>A specific input paired with the output it should produce — used to check that code actually works.</dd>
     <dt>Debugging</dt><dd>Finding and fixing the part of your code that's producing the wrong result.</dd>
@@ -261,40 +257,37 @@
   </div>
 </dialog>
 
-<div class="toast" id="toast"></div>
-
 <script>
 (function(){
   "use strict";
 
-  /* ---------------------------------------------------------------- */
-  /* Round content                                                     */
-  /* ---------------------------------------------------------------- */
+  /* ================================================================ */
+  /* Content                                                            */
+  /* ================================================================ */
   const PATTERNS = [
-    { seq:[2,5,8,11], next:14, options:[14,13,15,12], why:"Each number goes up by 3." },
-    { seq:[3,6,12,24], next:48, options:[48,36,42,30], why:"Each number doubles." },
-    { seq:[100,90,80,70], next:60, options:[60,50,65,55], why:"Each number goes down by 10." },
-    { seq:[1,4,9,16], next:25, options:[25,20,24,36], why:"These are square numbers: 1²,2²,3²,4²,5²." },
-    { seq:[5,10,20,40], next:80, options:[80,60,45,70], why:"Each number doubles." },
-    { seq:[1,1,2,3,5], next:8, options:[8,7,9,6], why:"Fibonacci: each number is the sum of the two before it." },
-    { seq:[2,3,5,7,11], next:13, options:[13,12,14,9], why:"These are consecutive prime numbers." }
+    { seq:[2,5,8,11], next:14, why:"Each number goes up by 3." },
+    { seq:[3,6,12,24], next:48, why:"Each number doubles." },
+    { seq:[100,90,80,70], next:60, why:"Each number goes down by 10." },
+    { seq:[1,4,9,16], next:25, why:"These are square numbers: 1²,2²,3²,4²,5²." },
+    { seq:[5,10,20,40], next:80, why:"Each number doubles." },
+    { seq:[1,1,2,3,5], next:8, why:"Fibonacci: each number is the sum of the two before it." },
+    { seq:[2,3,5,7,11], next:13, why:"These are consecutive prime numbers." }
   ];
 
   const CHART_DATA = [40,44,42,50,47,55];
-  const CHART_QUESTIONS = [
-    { prompt:"What was the highest closing price on the chart?", options:["$55","$50","$47","$44"], correct:0,
-      why:"Day 6 closed at $55, the tallest point on the line." },
-    { prompt:"What was the percent change from Day 1 to Day 6?", options:["37.5%","25%","15%","50%"], correct:0,
-      why:"Change is $15. $15 ÷ $40 = 0.375 = 37.5%." },
-    { prompt:"On which day did the price first drop compared to the day before?", options:["Day 3","Day 2","Day 5","Day 6"], correct:0,
-      why:"Day 2 was $44 and Day 3 fell to $42 — the first drop." }
+  const MARKET_TASKS = [
+    { kind:"click", prompt:"Click the day with the highest closing price.", targetIndex:5,
+      why:"Day 6 closed at $55 — the highest point on the line." },
+    { kind:"click", prompt:"Click the day the price first dropped compared to the day before.", targetIndex:2,
+      why:"Day 2 was $44 and Day 3 fell to $42 — the first drop." },
+    { kind:"type", prompt:"Type the percent change from Day 1 to Day 6 (e.g. 12.5).", answer:37.5, tolerance:0.05,
+      why:"Change is $15. $15 ÷ $40 = 0.375 = 37.5%." }
   ];
 
-  const DICE_QUESTIONS = [
-    { prompt:"Rolling two dice, what's the probability their sum equals 7?", options:["1/6","1/12","1/9","1/4"], correct:0,
-      why:"6 of the 36 outcomes sum to 7 (1+6, 2+5, 3+4...). 6/36 = 1/6." },
-    { prompt:"Rolling two dice, what's the probability the sum is an even number?", options:["1/2","1/3","1/4","2/3"], correct:0,
-      why:"18 of the 36 possible outcomes give an even sum. 18/36 = 1/2." }
+  const BETS = [
+    { id:"a", label:"Sum = 7", payout:"Pays 5 : 1", detail:"True odds: 6 of 36 rolls sum to 7 (1 in 6).", ev:0 },
+    { id:"b", label:"Even sum", payout:"Pays 1 : 1", detail:"True odds: 18 of 36 rolls are even (1 in 2).", ev:0 },
+    { id:"c", label:"Sum ≥ 10", payout:"Pays 3 : 1", detail:"True odds: 6 of 36 rolls are 10+ (1 in 6).", ev:-0.333 }
   ];
 
   const FIX_BUG = {
@@ -319,7 +312,7 @@
 
   const BEST_TRADE = {
     title:"Live Coding: Best Trade",
-    prompt:"Final round. Write bestProfit(prices): given a list of daily prices, return the maximum profit from buying on one day and selling on a later day. Return 0 if no profit is possible.",
+    prompt:"Write bestProfit(prices): given a list of daily prices, return the maximum profit from buying on one day and selling on a later day. Return 0 if no profit is possible.",
     fnName:"bestProfit",
     starter:
 `function bestProfit(prices) {
@@ -335,36 +328,50 @@
     hint:"Scan left to right, tracking the lowest price seen so far. At each day, compare price minus that lowest to your best profit so far."
   };
 
-  const ROUND_TYPES = ["mentalmath","pattern","chart","dice","debug","code"];
-  const TOTAL_ROUNDS = ROUND_TYPES.length;
-  const START_OFFER = 70000;
-  const OFFER_FLOOR = 15000;
+  const COLD_EMAIL_TARGET = "Hi Priya, I'm a sophomore at Lakeview State studying math and I'd love 15 minutes to hear about your path into quant trading.";
+  const CASE_ESTIMATE = { prompt:"Estimate: how many golf balls would fit inside a standard school bus?", reference:500000 };
 
-  const RANKS = [
-    { min:-Infinity, title:"No Offer This Cycle", note:"Recruiting is brutal. Study up and shoot your shot again next season." },
-    { min:40000, title:"Offer: Back-Office Rotational", note:"You're in the building — just not on the desk yet." },
-    { min:90000, title:"Offer: Junior Quant Analyst", note:"Welcome to the desk. Coffee's bad, pay's decent." },
-    { min:120000, title:"Offer: Quant Trader", note:"Sharp math, sharper code. They want you on the desk." },
-    { min:160000, title:"Offer: Senior Quant Researcher", note:"Multiple desks are fighting over you." },
-    { min:200000, title:"Offer: Quant Desk Head", note:"Competing offers, signing bonus, the whole deal." }
+  const GAUNTLET_ORDER = ["mentalmath","pattern","market","risk","debug","code"];
+  const GAUNTLET_WEIGHTS = { mentalmath:15, pattern:15, market:15, risk:15, debug:20, code:20 };
+  const GAUNTLET_LABELS = {
+    mentalmath:"Mental Math Sprint", pattern:"Sequence Sprint", market:"Market Read",
+    risk:"Risk Desk", debug:"Fix the Bug", code:"Live Coding: Best Trade"
+  };
+
+  // Realistic 2025 U.S. entry-level quant compensation bands, grounded in
+  // publicly reported market data (levels.fyi, industry salary guides).
+  const SALARY_TIERS = [
+    { min:0, max:19, title:"No Offer", type:"none",
+      note:"Tough day — most candidates don't clear the bar on a first attempt. Real acceptance rates at top quant shops run in the low single digits." },
+    { min:20, max:39, title:"Operations Analyst (Back Office)", type:"base", low:65000, high:78000,
+      note:"A non-quant landing spot at a bank — realistic entry-level operations/support analyst pay in a major U.S. finance hub." },
+    { min:40, max:59, title:"Quant Developer — Regional Firm", type:"base", low:95000, high:135000,
+      note:"Typical entry-level quant developer base pay across the broader market, outside the handful of elite firms." },
+    { min:60, max:74, title:"Quant Developer / Risk Analyst — Bulge-Bracket Bank", type:"base", low:150000, high:195000,
+      note:"Base pay at a major bank — roughly half the total comp of an elite prop-trading offer at the same level." },
+    { min:75, max:89, title:"Quant Researcher/Trader — Mid-Tier Fund", type:"total", low:210000, high:300000,
+      note:"Total first-year comp (base + bonus) at a solid, non-elite systematic fund or trading firm." },
+    { min:90, max:100, title:"Quant Trader/Researcher — Elite Prop Firm", type:"total", low:350000, high:650000,
+      note:"Total first-year comp in line with 2025 new-grad offers at firms like Jane Street, Citadel Securities, Optiver, and Two Sigma." }
   ];
 
-  /* ---------------------------------------------------------------- */
-  /* State                                                              */
-  /* ---------------------------------------------------------------- */
+  /* ================================================================ */
+  /* State + small helpers                                             */
+  /* ================================================================ */
   let state = null;
-  let roundStartOffer = 0;
   let mm = null; // mental math round state
 
   function freshState(name){
     return {
       name: name || "Candidate",
-      round: 0,
-      offer: START_OFFER,
-      history: [START_OFFER],
-      mentalMathCorrect: 0,
-      mentalMathAttempts: 0,
-      roundResults: []
+      path: null,
+      school: null,
+      rounds: [],
+      currentIndex: 0,
+      roundResults: [],
+      scoreHistory: [],
+      pathBonus: 0,
+      preScores: {}
     };
   }
 
@@ -376,61 +383,59 @@
     return arr;
   }
 
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
   function money(n){
     const sign = n < 0 ? "−" : "";
     return sign + "$" + Math.abs(Math.round(n)).toLocaleString("en-US");
   }
 
-  function showToast(msg){
-    const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.classList.add("show");
-    clearTimeout(showToast._h);
-    showToast._h = setTimeout(()=>t.classList.remove("show"), 1800);
+  function moneyRound(n){ return Math.round(n/1000)*1000; }
+
+  function similarity(a,b){
+    const len = Math.max(a.length, b.length);
+    if(len === 0) return 1;
+    let match = 0;
+    for(let i=0;i<Math.min(a.length,b.length);i++){ if(a[i] === b[i]) match++; }
+    return match/len;
   }
 
-  function applyDelta(delta){
-    state.offer = Math.max(OFFER_FLOOR, state.offer + delta);
-    state.history.push(state.offer);
+  function estimateScore(guess){
+    const g = Math.max(1, Math.abs(Number(guess) || 1));
+    const diff = Math.abs(Math.log10(g) - Math.log10(CASE_ESTIMATE.reference));
+    return Math.round(Math.max(0, 100 - diff*100));
   }
 
-  function rankFor(offer){
-    let r = RANKS[0];
-    for(const cand of RANKS){ if(offer >= cand.min) r = cand; }
-    return r;
-  }
-
-  function escapeHtml(s){
-    return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  }
-
-  /* ---------------------------------------------------------------- */
+  /* ================================================================ */
   /* Shared UI chrome                                                   */
-  /* ---------------------------------------------------------------- */
+  /* ================================================================ */
   const card = document.getElementById("card");
 
+  function liveScoreDisplay(){
+    const gr = state.roundResults.filter(r=>r.weight);
+    if(!gr.length) return "—";
+    const totalWeight = gr.reduce((s,r)=>s+r.weight,0);
+    const weighted = gr.reduce((s,r)=>s+r.score*r.weight,0);
+    return Math.round(weighted/totalWeight) + "%";
+  }
+
   function hud(roundLabel){
-    const trend = state.history.length > 1 ? state.offer - state.history[state.history.length-2] : 0;
-    const cls = trend > 0 ? "cap-up" : trend < 0 ? "cap-down" : "";
     return `
       <div class="hud">
         <div><div class="label">Candidate</div><div class="value">${escapeHtml(state.name)}</div></div>
-        <div><div class="label">${roundLabel}</div><div class="value">Round ${Math.min(state.round+1, TOTAL_ROUNDS)} / ${TOTAL_ROUNDS}</div></div>
-        <div><div class="label">Offer</div><div class="value num ${cls}">${money(state.offer)}</div></div>
+        <div><div class="label">${escapeHtml(roundLabel)}</div><div class="value">Round ${Math.min(state.currentIndex+1, state.rounds.length)} / ${state.rounds.length}</div></div>
+        <div><div class="label">Interview Score</div><div class="value num">${liveScoreDisplay()}</div></div>
       </div>`;
   }
 
   function footer(){
     let dots = "";
-    for(let i=0;i<TOTAL_ROUNDS;i++){
+    for(let i=0;i<state.rounds.length;i++){
       let cls = "dot";
-      if(i < state.round){
-        const before = state.history[i] ?? START_OFFER;
-        const after = state.history[i+1] ?? before;
-        cls += after >= before ? " done-up" : " done-down";
-      } else if(i === state.round){
-        cls += " now";
-      }
+      if(i < state.currentIndex) cls += " done";
+      else if(i === state.currentIndex) cls += " now";
       dots += `<span class="${cls}" title="Round ${i+1}"></span>`;
     }
     return `
@@ -446,16 +451,17 @@
     const ctx = c.getContext("2d");
     const w = c.width, h = c.height, pad = 3;
     ctx.clearRect(0,0,w,h);
-    const data = state.history;
+    const data = state.scoreHistory;
+    if(data.length < 2) return;
     const min = Math.min(...data), max = Math.max(...data);
     const range = (max - min) || 1;
     const styles = getComputedStyle(document.documentElement);
-    const up = state.offer >= START_OFFER;
-    ctx.strokeStyle = up ? styles.getPropertyValue('--profit').trim() : styles.getPropertyValue('--loss').trim();
+    const last = data[data.length-1];
+    ctx.strokeStyle = (last >= 60 ? styles.getPropertyValue('--profit') : styles.getPropertyValue('--loss')).trim();
     ctx.lineWidth = 2;
     ctx.beginPath();
     data.forEach((v,i)=>{
-      const x = pad + (i/(data.length-1||1)) * (w-2*pad);
+      const x = pad + (i/(data.length-1)) * (w-2*pad);
       const y = h - pad - ((v-min)/range) * (h-2*pad);
       i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
     });
@@ -468,131 +474,300 @@
     ctx.fill();
   }
 
-  function drawPriceChart(canvasId, data, xLabels){
+  function chartPointPositions(w, h, data){
+    const padL = 34, padR = 12, padT = 14, padB = 22;
+    const min = Math.min(...data), max = Math.max(...data);
+    const range = (max-min) || 1;
+    const plotW = w-padL-padR, plotH = h-padT-padB;
+    return data.map((v,i)=>({
+      x: padL + (i/(data.length-1))*plotW,
+      y: padT + plotH - ((v-min)/range)*plotH
+    }));
+  }
+
+  function drawTrendChart(canvasId, data, xLabels, formatValue){
+    formatValue = formatValue || (v=>String(v));
     const c = document.getElementById(canvasId);
     const ctx = c.getContext("2d");
-    const w = c.width, h = c.height, padL = 34, padR = 12, padT = 14, padB = 22;
+    const w = c.width, h = c.height, padL = 34, padR = 12;
     const styles = getComputedStyle(document.documentElement);
     const line = styles.getPropertyValue('--info').trim();
     const grid = styles.getPropertyValue('--line').trim();
     const ink = styles.getPropertyValue('--ink-soft').trim();
-    const endColor = data[data.length-1] >= data[0] ? styles.getPropertyValue('--profit').trim() : styles.getPropertyValue('--loss').trim();
+    const endColor = (data[data.length-1] >= data[0] ? styles.getPropertyValue('--profit') : styles.getPropertyValue('--loss')).trim();
 
     ctx.clearRect(0,0,w,h);
     const min = Math.min(...data), max = Math.max(...data);
     const range = (max-min) || 1;
-    const plotW = w-padL-padR, plotH = h-padT-padB;
+    const pts = chartPointPositions(w,h,data);
 
     ctx.strokeStyle = grid;
     ctx.lineWidth = 1;
     ctx.font = "11px " + getComputedStyle(document.body).fontFamily;
     ctx.fillStyle = ink;
     [min, max].forEach(v=>{
-      const y = padT + plotH - ((v-min)/range)*plotH;
+      const yy = 14 + (h-14-22) - ((v-min)/range)*(h-14-22);
       ctx.beginPath();
-      ctx.moveTo(padL, y); ctx.lineTo(w-padR, y);
+      ctx.moveTo(padL, yy); ctx.lineTo(w-padR, yy);
       ctx.stroke();
-      ctx.fillText("$"+v, 2, y+4);
+      ctx.fillText(formatValue(v), 2, yy+4);
     });
 
     ctx.strokeStyle = line;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    data.forEach((v,i)=>{
-      const x = padL + (i/(data.length-1))*plotW;
-      const y = padT + plotH - ((v-min)/range)*plotH;
-      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-    });
+    pts.forEach((p,i)=>{ i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y); });
     ctx.stroke();
 
     ctx.fillStyle = ink;
     if(xLabels){
-      data.forEach((v,i)=>{
-        const x = padL + (i/(data.length-1))*plotW;
-        ctx.fillText(xLabels[i], x-7, h-6);
-      });
+      pts.forEach((p,i)=>{ ctx.fillText(xLabels[i], p.x-7, h-6); });
     } else {
       ctx.fillText("Start", padL-2, h-6);
       ctx.fillText("Now", w-padR-22, h-6);
     }
 
-    const lastX = padL + plotW;
-    const lastY = padT + plotH - ((data[data.length-1]-min)/range)*plotH;
     ctx.fillStyle = endColor;
     ctx.beginPath();
-    ctx.arc(lastX, lastY, 4, 0, Math.PI*2);
+    ctx.arc(pts[pts.length-1].x, pts[pts.length-1].y, 4, 0, Math.PI*2);
     ctx.fill();
   }
 
-  /* ---------------------------------------------------------------- */
-  /* Start screen                                                       */
-  /* ---------------------------------------------------------------- */
+  function canvasLocalPoint(canvas, evt){
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return { x: (evt.clientX-rect.left)*scaleX, y: (evt.clientY-rect.top)*scaleY };
+  }
+
+  /* ================================================================ */
+  /* Start / path selection                                             */
+  /* ================================================================ */
   function renderStart(){
     card.innerHTML = `
-      <div class="eyebrow">Job Hunt — Quant Interview Day</div>
+      <div class="eyebrow">Career Sim — Choose Your Start</div>
       <h1>Quant Quest</h1>
-      <p style="color:var(--ink-soft); margin:10px 0 18px;">
-        You're 22, fresh out of college, and today's the interview at a quant
-        trading firm. Six rounds stand between you and an offer: mental math,
-        pattern recognition, chart reading, probability, and two live-coding
-        challenges. You're currently penciled in at <strong class="num">$70,000</strong> —
-        perform well and watch it climb.
-      </p>
-      <label for="nameInput" style="font-size:13px; color:var(--ink-soft);">What should the recruiter call you?</label>
-      <div class="stage-input">
-        <input type="text" id="nameInput" placeholder="e.g. Sam" maxlength="18" />
+      <p class="lede">Two on-ramps into quant finance: fresh out of high school, or fresh out of college.
+        Your starting point changes how much hustling you need to do to get in the room —
+        the interview itself is where the offer actually gets decided.</p>
+      <label for="nameInput" class="field-label">What should the recruiter call you?</label>
+      <div class="stage-input"><input type="text" id="nameInput" placeholder="e.g. Sam" maxlength="18" /></div>
+      <div class="path-grid" style="margin-top:16px;">
+        <button class="path-card" id="collegeBtn" type="button">
+          <div class="path-title">Fresh out of College</div>
+          <div class="path-sub">Age 22 · straight into the interview gauntlet</div>
+        </button>
+        <button class="path-card" id="hsBtn" type="button">
+          <div class="path-title">Fresh out of High School</div>
+          <div class="path-sub">Age 18 · pick your school, then prove yourself</div>
+        </button>
       </div>
       <div class="row" style="margin-top:16px;">
-        <button class="btn" id="startBtn">Start the Interview</button>
-        <button class="btn secondary" id="glossaryBtn">📘 Cheat Sheet</button>
+        <button class="btn secondary" id="glossaryBtn" type="button">📘 Cheat Sheet</button>
       </div>
     `;
-    document.getElementById("startBtn").addEventListener("click", ()=>{
-      const val = document.getElementById("nameInput").value.trim();
-      state = freshState(val);
+    function getName(){ return document.getElementById("nameInput").value.trim(); }
+    document.getElementById("collegeBtn").addEventListener("click", ()=>{
+      state = freshState(getName());
+      state.path = "college";
+      state.rounds = GAUNTLET_ORDER.slice();
       renderRound();
+    });
+    document.getElementById("hsBtn").addEventListener("click", ()=>{
+      state = freshState(getName());
+      state.path = "highschool";
+      renderSchoolChoice();
     });
     document.getElementById("glossaryBtn").addEventListener("click", ()=>{
       document.getElementById("glossary").showModal();
     });
-    document.getElementById("nameInput").addEventListener("keydown", e=>{
-      if(e.key === "Enter") document.getElementById("startBtn").click();
+  }
+
+  function renderSchoolChoice(){
+    card.innerHTML = `
+      <div class="eyebrow">Fresh out of High School</div>
+      <h1>Which school takes you?</h1>
+      <p class="lede">This is the real fork in finance recruiting: some schools have a direct
+        pipeline onto trading floors, some don't.</p>
+      <div class="path-grid">
+        <button class="path-card" id="targetBtn" type="button">
+          <div class="path-title">Target School</div>
+          <div class="path-sub">Recruiters already run info sessions here. One quick networking round, then straight to interviews.</div>
+        </button>
+        <button class="path-card" id="nonTargetBtn" type="button">
+          <div class="path-title">Non-Target School</div>
+          <div class="path-sub">No campus pipeline. You'll cold-email your way in and clear a case round before anyone gives you a slot.</div>
+        </button>
+      </div>
+    `;
+    document.getElementById("targetBtn").addEventListener("click", ()=>{
+      state.school = "target";
+      state.rounds = ["networking", ...GAUNTLET_ORDER];
+      renderRound();
+    });
+    document.getElementById("nonTargetBtn").addEventListener("click", ()=>{
+      state.school = "nontarget";
+      state.rounds = ["coldemail","case", ...GAUNTLET_ORDER];
+      renderRound();
     });
   }
 
-  /* ---------------------------------------------------------------- */
+  /* ================================================================ */
   /* Round dispatcher                                                   */
-  /* ---------------------------------------------------------------- */
+  /* ================================================================ */
   function renderRound(){
-    if(state.round >= TOTAL_ROUNDS){ renderEnd(); return; }
-    const kind = ROUND_TYPES[state.round];
-    if(kind === "mentalmath") renderMentalMath();
+    if(state.currentIndex >= state.rounds.length){ renderEnd(); return; }
+    const kind = state.rounds[state.currentIndex];
+    if(kind === "networking") renderNetworking();
+    else if(kind === "coldemail") renderColdEmail();
+    else if(kind === "case") renderCaseEstimate();
+    else if(kind === "mentalmath") renderMentalMath();
     else if(kind === "pattern") renderPattern();
-    else if(kind === "chart") renderChart();
-    else if(kind === "dice") renderDice();
-    else if(kind === "debug") renderCodeRound(FIX_BUG);
-    else if(kind === "code") renderCodeRound(BEST_TRADE);
+    else if(kind === "market") renderMarket();
+    else if(kind === "risk") renderRisk();
+    else if(kind === "debug") renderCodeRound(FIX_BUG, "debug");
+    else if(kind === "code") renderCodeRound(BEST_TRADE, "code");
   }
 
-  function finishRound(label, note){
-    const delta = state.offer - roundStartOffer;
-    state.roundResults.push({ label, delta });
-    state.round++;
-    if(delta >= 4000) showToast("🔥 Great round!");
+  function advanceRound(){
+    state.currentIndex++;
+    renderRound();
+  }
+
+  function finishGauntletRound(type, score, note){
+    const label = GAUNTLET_LABELS[type];
+    const weight = GAUNTLET_WEIGHTS[type];
+    state.roundResults.push({ type, label, score, weight });
+    state.scoreHistory.push(score);
+    state.currentIndex++;
     card.innerHTML = `
       ${hud("Round Complete")}
-      <div class="eyebrow">${escapeHtml(label)} — Wrapped</div>
+      <div class="eyebrow">${escapeHtml(label)} — Scorecard</div>
       <p>${escapeHtml(note)}</p>
-      <p>Round result:
-        <span class="num" style="font-weight:700; color:${delta>=0?'var(--profit)':'var(--loss)'}">
-          ${delta>=0?"+":""}${money(delta)}
-        </span>
+      <p>Round score:
+        <span class="num" style="font-weight:700; color:${score>=60?'var(--profit)':'var(--loss)'}">${score}/100</span>
       </p>
-      <div class="row"><button class="btn" id="continueBtn">${state.round < TOTAL_ROUNDS ? "Next Round →" : "See Your Offer →"}</button></div>
+      <div class="row"><button class="btn" id="continueBtn">${state.currentIndex < state.rounds.length ? "Next Round →" : "See Your Offer →"}</button></div>
       ${footer()}
     `;
     drawSpark();
     document.getElementById("continueBtn").addEventListener("click", renderRound);
+  }
+
+  /* -------------------- Pre-round: Networking Mixer (target) -------------------- */
+  function renderNetworking(){
+    const badges = shuffle([
+      { label:"Quant Trading — Priya", correct:true },
+      { label:"Compliance — Marcus", correct:false },
+      { label:"Wealth Management — Dana", correct:false },
+      { label:"IT Support — Lee", correct:false }
+    ]);
+    card.innerHTML = `
+      ${hud("Recruiting — Info Session")}
+      <div class="eyebrow">Target School Pipeline</div>
+      <div class="prompt">The trading floor sends recruiters to your school's info night.
+        Walk up and introduce yourself to the Quant Trading recruiter.</div>
+      <div class="options" id="badges"></div>
+      <div id="feedbackSlot"></div>
+      ${footer()}
+    `;
+    drawSpark();
+    const wrap = document.getElementById("badges");
+    badges.forEach(b=>{
+      const btn = document.createElement("button");
+      btn.className = "opt";
+      btn.type = "button";
+      btn.textContent = b.label;
+      btn.addEventListener("click", ()=>{
+        if(b.correct){
+          state.pathBonus = 3;
+          document.querySelectorAll("#badges .opt").forEach(x=>x.disabled = true);
+          btn.classList.add("correct");
+          document.getElementById("feedbackSlot").innerHTML = `
+            <div class="feedback correct"><div>✅ Nice — you're on Priya's interview list for next week.</div></div>
+            <div class="row right" style="margin-top:14px;"><button class="btn" id="continueBtn">Continue →</button></div>`;
+          document.getElementById("continueBtn").addEventListener("click", advanceRound);
+        } else {
+          btn.classList.add("wrong");
+          setTimeout(()=>btn.classList.remove("wrong"), 500);
+        }
+      });
+      wrap.appendChild(btn);
+    });
+  }
+
+  /* -------------------- Pre-round: Cold Email Blitz (non-target) -------------------- */
+  function renderColdEmail(){
+    card.innerHTML = `
+      ${hud("Recruiting — Cold Outreach")}
+      <div class="eyebrow">Non-Target Hustle · Cold Email Blitz</div>
+      <div class="prompt">No campus pipeline means you make your own. Type this outreach
+        message as fast and accurately as you can, then send it.</div>
+      <div class="type-target">${escapeHtml(COLD_EMAIL_TARGET)}</div>
+      <textarea id="typeInput" rows="3" placeholder="Start typing..."></textarea>
+      <div class="row right" style="margin-top:10px;"><button class="btn" id="sendBtn" type="button">Send Email</button></div>
+      <div id="feedbackSlot"></div>
+      ${footer()}
+    `;
+    drawSpark();
+    const input = document.getElementById("typeInput");
+    input.focus();
+    const startTime = Date.now();
+    document.getElementById("sendBtn").addEventListener("click", ()=>{
+      const typed = input.value;
+      const elapsedMin = Math.max((Date.now()-startTime)/60000, 0.05);
+      const acc = similarity(typed.trim(), COLD_EMAIL_TARGET);
+      const words = COLD_EMAIL_TARGET.split(/\s+/).length;
+      const wpm = words/elapsedMin;
+      const speedScore = Math.min(100, (wpm/45)*100);
+      const score = Math.round(acc*100*0.7 + speedScore*0.3);
+      input.disabled = true;
+      document.getElementById("sendBtn").disabled = true;
+      state.preScores.coldemail = score;
+      document.getElementById("feedbackSlot").innerHTML = `
+        <div class="feedback ${score>=60?'correct':'wrong'}">
+          <div>${score>=60?"✅ Solid outreach.":"🟡 Sent — a little rough."} Accuracy ${Math.round(acc*100)}% · Speed ${Math.round(wpm)} WPM</div>
+        </div>
+        <div class="row right" style="margin-top:14px;"><button class="btn" id="continueBtn">Continue →</button></div>`;
+      document.getElementById("continueBtn").addEventListener("click", advanceRound);
+    });
+  }
+
+  /* -------------------- Pre-round: Case Estimate (non-target) -------------------- */
+  function renderCaseEstimate(){
+    card.innerHTML = `
+      ${hud("Recruiting — Case Round")}
+      <div class="eyebrow">Non-Target Hustle · Fermi Estimate</div>
+      <div class="prompt">${escapeHtml(CASE_ESTIMATE.prompt)}</div>
+      <div class="stage-input">
+        <input type="text" inputmode="numeric" id="estInput" placeholder="Your best estimate" autocomplete="off" />
+        <button class="btn" id="estSubmit" type="button">Submit</button>
+      </div>
+      <div id="feedbackSlot"></div>
+      ${footer()}
+    `;
+    drawSpark();
+    const input = document.getElementById("estInput");
+    input.focus();
+    function submit(){
+      const raw = input.value.replace(/[, ]/g, "");
+      const score = estimateScore(Number(raw));
+      state.preScores.case = score;
+      input.disabled = true;
+      document.getElementById("estSubmit").disabled = true;
+      document.getElementById("feedbackSlot").innerHTML = `
+        <div class="feedback ${score>=60?'correct':'wrong'}">
+          <div>${score>=60?"✅ Right order of magnitude.":"🟡 Off — Fermi problems reward being in the ballpark, not exact."} A reasonable estimate is around 500,000.</div>
+        </div>
+        <div class="row right" style="margin-top:14px;"><button class="btn" id="continueBtn">Continue →</button></div>`;
+      document.getElementById("continueBtn").addEventListener("click", ()=>{
+        const avg = ((state.preScores.coldemail||0) + (state.preScores.case||0)) / 2;
+        state.pathBonus = Math.max(0, Math.min(5, Math.round(avg/20)));
+        advanceRound();
+      });
+    }
+    document.getElementById("estSubmit").addEventListener("click", submit);
+    input.addEventListener("keydown", e=>{ if(e.key === "Enter") submit(); });
   }
 
   /* -------------------- Round: Mental Math Sprint -------------------- */
@@ -615,14 +790,13 @@
       const n = 4 + Math.floor(Math.random()*17);
       return { prompt:`${n}²`, answer:n*n };
     }
-    const a = 50 + Math.floor(Math.random()*150);
-    const b = 20 + Math.floor(Math.random()*130);
+    const a = 100 + Math.floor(Math.random()*100); // 100-199
+    const b = 20 + Math.floor(Math.random()*80);   // 20-99, always < a
     const op = Math.random() > 0.5 ? "+" : "−";
     return { prompt:`${a} ${op} ${b}`, answer: op === "+" ? a+b : a-b };
   }
 
   function renderMentalMath(){
-    roundStartOffer = state.offer;
     mm = { secondsLeft:30, correct:0, attempted:0, timerId:null, current: genMathProblem() };
     mmRenderScreen();
     mm.timerId = setInterval(mmTick, 1000);
@@ -634,9 +808,8 @@
     if(el) el.textContent = mm.secondsLeft + "s";
     if(mm.secondsLeft <= 0){
       clearInterval(mm.timerId);
-      state.mentalMathCorrect = mm.correct;
-      state.mentalMathAttempts = mm.attempted;
-      finishRound("Mental Math Sprint", `You answered ${mm.correct} correct out of ${mm.attempted} attempts in 30 seconds.`);
+      const score = Math.min(100, mm.correct*10);
+      finishGauntletRound("mentalmath", score, `You answered ${mm.correct} correct out of ${mm.attempted} attempts in 30 seconds.`);
     }
   }
 
@@ -651,7 +824,7 @@
       <div class="prompt num" id="mmProblem" style="font-size:30px;">${mm.current.prompt} = ?</div>
       <div class="stage-input">
         <input type="text" inputmode="numeric" id="mmInput" placeholder="Your answer" autocomplete="off" />
-        <button class="btn" id="mmSubmit">Enter</button>
+        <button class="btn" id="mmSubmit" type="button">Enter</button>
       </div>
       <div id="feedbackSlot" style="margin-top:10px; font-size:14px; font-weight:600; min-height:20px;"></div>
       ${footer()}
@@ -667,8 +840,7 @@
       if(raw !== ""){
         mm.attempted++;
         const isRight = Number(raw) === mm.current.answer;
-        if(isRight){ mm.correct++; applyDelta(1200); }
-        else { applyDelta(-400); }
+        if(isRight){ mm.correct++; }
         fb.textContent = isRight ? "✅ correct" : `❌ it was ${mm.current.answer}`;
         fb.style.color = isRight ? "var(--profit)" : "var(--loss)";
       }
@@ -682,195 +854,174 @@
     input.addEventListener("keydown", e=>{ if(e.key === "Enter") submit(); });
   }
 
-  /* -------------------- Round: Pattern Recognition -------------------- */
+  /* -------------------- Round: Sequence Sprint -------------------- */
   function renderPattern(){
-    roundStartOffer = state.offer;
     const rounds = shuffle(PATTERNS.slice()).slice(0,3);
     renderPatternRound(rounds, 0, 0);
   }
 
-  function renderPatternRound(rounds, idx, tally){
+  function renderPatternRound(rounds, idx, correctCount){
     if(idx >= rounds.length){
-      finishRound("Pattern Recognition", `You called ${tally} of ${rounds.length} patterns correctly.`);
+      const score = Math.round(correctCount/rounds.length*100);
+      finishGauntletRound("pattern", score, `You typed ${correctCount} of ${rounds.length} sequences correctly.`);
       return;
     }
     const r = rounds[idx];
     card.innerHTML = `
-      ${hud("Pattern Recognition")}
-      <div class="eyebrow">Pattern Round ${idx+1} of ${rounds.length}</div>
-      <div class="prompt">The interviewer's whiteboard has a number pattern. What comes next?</div>
+      ${hud("Sequence Sprint")}
+      <div class="eyebrow">Sequence ${idx+1} of ${rounds.length}</div>
+      <div class="prompt">Type the next number in the sequence.</div>
       <div class="prompt num" style="font-size:24px; letter-spacing:.04em;">${r.seq.join(", ")}, ?</div>
-      <div class="options" id="opts"></div>
+      <div class="stage-input">
+        <input type="text" inputmode="numeric" id="seqInput" placeholder="Next number" autocomplete="off" />
+        <button class="btn" id="seqSubmit" type="button">Submit</button>
+      </div>
       <div id="feedbackSlot"></div>
       ${footer()}
     `;
     drawSpark();
-    const opts = document.getElementById("opts");
-    r.options.forEach(val=>{
-      const b = document.createElement("button");
-      b.className = "opt num";
-      b.textContent = val;
-      b.addEventListener("click", ()=>{
-        const buttons = document.querySelectorAll("#opts .opt");
-        buttons.forEach(bb=>bb.disabled = true);
-        const isRight = val === r.next;
-        buttons.forEach(bb=>{ if(Number(bb.textContent) === r.next) bb.classList.add("correct"); });
-        if(!isRight) b.classList.add("wrong");
-        const delta = isRight ? 800 : -400;
-        applyDelta(delta);
-        document.getElementById("feedbackSlot").innerHTML = `
-          <div class="feedback ${isRight?"correct":"wrong"}">
-            <div>${isRight?"✅ Correct pattern!":"❌ Not quite."} <span class="delta ${delta>=0?"up":"down"}">${delta>=0?"+":""}${money(delta)}</span></div>
-            <div class="why" style="color:var(--ink-soft); font-size:14px; margin-top:6px;">${escapeHtml(r.why)}</div>
-          </div>
-          <div class="row right" style="margin-top:14px;">
-            <button class="btn" id="continueBtn">${idx+1 < rounds.length ? "Next Round →" : "Continue →"}</button>
-          </div>
-        `;
-        document.getElementById("continueBtn").addEventListener("click", ()=>{
-          renderPatternRound(rounds, idx+1, tally + (isRight?1:0));
-        });
-      });
-      opts.appendChild(b);
-    });
-  }
-
-  /* -------------------- Round: Chart Reading -------------------- */
-  function renderChart(){
-    roundStartOffer = state.offer;
-    renderChartRound(shuffle(CHART_QUESTIONS.slice()), 0, 0);
-  }
-
-  function renderChartRound(qs, idx, tally){
-    if(idx >= qs.length){
-      finishRound("Chart Reading", `You read ${tally} of ${qs.length} chart questions correctly.`);
-      return;
-    }
-    const q = qs[idx];
-    card.innerHTML = `
-      ${hud("Chart Reading")}
-      <div class="eyebrow">Chart Round · Question ${idx+1} of ${qs.length}</div>
-      <div class="prompt">Read Ticker XYZ's price over the last 6 days.</div>
-      <canvas id="priceChart" width="480" height="150" style="width:100%; max-width:480px; height:150px;"></canvas>
-      <div class="prompt" style="margin-top:14px;">${escapeHtml(q.prompt)}</div>
-      <div class="options" id="opts"></div>
-      <div id="feedbackSlot"></div>
-      ${footer()}
-    `;
-    drawSpark();
-    drawPriceChart("priceChart", CHART_DATA, CHART_DATA.map((_,i)=>"D"+(i+1)));
-    const opts = document.getElementById("opts");
-    q.options.forEach((opt,i)=>{
-      const b = document.createElement("button");
-      b.className = "opt";
-      b.textContent = opt;
-      b.addEventListener("click", ()=>{
-        const buttons = document.querySelectorAll("#opts .opt");
-        buttons.forEach(bb=>bb.disabled = true);
-        const isRight = i === q.correct;
-        buttons[q.correct].classList.add("correct");
-        if(!isRight) b.classList.add("wrong");
-        const delta = isRight ? 900 : -450;
-        applyDelta(delta);
-        document.getElementById("feedbackSlot").innerHTML = `
-          <div class="feedback ${isRight?"correct":"wrong"}">
-            <div>${isRight?"✅ Sharp reading.":"❌ Look again next time."} <span class="delta ${delta>=0?"up":"down"}">${delta>=0?"+":""}${money(delta)}</span></div>
-            <div class="why" style="color:var(--ink-soft); font-size:14px; margin-top:6px;">${escapeHtml(q.why)}</div>
-          </div>
-          <div class="row right" style="margin-top:14px;">
-            <button class="btn" id="continueBtn">${idx+1<qs.length?"Next Question →":"Continue →"}</button>
-          </div>
-        `;
-        document.getElementById("continueBtn").addEventListener("click", ()=>{
-          renderChartRound(qs, idx+1, tally + (isRight?1:0));
-        });
-      });
-      opts.appendChild(b);
-    });
-  }
-
-  /* -------------------- Round: Risk & Probability -------------------- */
-  function renderDice(){
-    roundStartOffer = state.offer;
-    renderDiceRound(shuffle(DICE_QUESTIONS.slice()), 0, 0);
-  }
-
-  function renderDiceRound(qs, idx, tally){
-    if(idx >= qs.length){ renderDiceRoll(tally, qs.length); return; }
-    const q = qs[idx];
-    card.innerHTML = `
-      ${hud("Risk & Probability")}
-      <div class="eyebrow">Probability ${idx+1} of ${qs.length}</div>
-      <div class="prompt">${escapeHtml(q.prompt)}</div>
-      <div class="options" id="opts"></div>
-      <div id="feedbackSlot"></div>
-      ${footer()}
-    `;
-    drawSpark();
-    const opts = document.getElementById("opts");
-    q.options.forEach((opt,i)=>{
-      const b = document.createElement("button");
-      b.className = "opt";
-      b.textContent = opt;
-      b.addEventListener("click", ()=>{
-        const buttons = document.querySelectorAll("#opts .opt");
-        buttons.forEach(bb=>bb.disabled = true);
-        const isRight = i === q.correct;
-        buttons[q.correct].classList.add("correct");
-        if(!isRight) b.classList.add("wrong");
-        const delta = isRight ? 1200 : -600;
-        applyDelta(delta);
-        document.getElementById("feedbackSlot").innerHTML = `
-          <div class="feedback ${isRight?"correct":"wrong"}">
-            <div>${isRight?"✅ Correct odds.":"❌ Recalculate next time."} <span class="delta ${delta>=0?"up":"down"}">${delta>=0?"+":""}${money(delta)}</span></div>
-            <div class="why" style="color:var(--ink-soft); font-size:14px; margin-top:6px;">${escapeHtml(q.why)}</div>
-          </div>
-          <div class="row right" style="margin-top:14px;">
-            <button class="btn" id="continueBtn">${idx+1<qs.length?"Next →":"Roll the Dice →"}</button>
-          </div>
-        `;
-        document.getElementById("continueBtn").addEventListener("click", ()=>{
-          renderDiceRound(qs, idx+1, tally + (isRight?1:0));
-        });
-      });
-      opts.appendChild(b);
-    });
-  }
-
-  function renderDiceRoll(tally, total){
-    card.innerHTML = `
-      ${hud("Risk & Probability")}
-      <div class="eyebrow">Bonus Wager</div>
-      <div class="prompt">The desk lets you roll two dice for a bonus. Sum of 7 is the jackpot, any even sum pays a little, odd (non-7) pays nothing.</div>
-      <div class="row" style="font-size:40px; margin:14px 0;" id="diceDisplay">🎲 🎲</div>
-      <div class="row"><button class="btn" id="rollBtn">Roll the Dice</button></div>
-      <div id="feedbackSlot"></div>
-      ${footer()}
-    `;
-    drawSpark();
-    document.getElementById("rollBtn").addEventListener("click", ()=>{
-      document.getElementById("rollBtn").disabled = true;
-      const d1 = 1+Math.floor(Math.random()*6);
-      const d2 = 1+Math.floor(Math.random()*6);
-      const sum = d1+d2;
-      const faces = ["","⚀","⚁","⚂","⚃","⚄","⚅"];
-      document.getElementById("diceDisplay").textContent = `${faces[d1]} ${faces[d2]}  (sum = ${sum})`;
-      let delta = 0, msg = "";
-      if(sum === 7){ delta = 2500; msg = "🎉 Jackpot! Sum of 7."; showToast("🎉 Jackpot!"); }
-      else if(sum % 2 === 0){ delta = 800; msg = "Even sum — small payout."; }
-      else { delta = 0; msg = "Odd, non-7 — no payout, no loss."; }
-      applyDelta(delta);
+    const input = document.getElementById("seqInput");
+    input.focus();
+    function submit(){
+      const val = Number(input.value.trim());
+      const isRight = val === r.next;
+      input.disabled = true;
+      document.getElementById("seqSubmit").disabled = true;
       document.getElementById("feedbackSlot").innerHTML = `
-        <div class="feedback ${delta>0?"correct":""}">
-          <div>${msg} <span class="delta ${delta>=0?"up":"down"}">${delta>=0?"+":""}${money(delta)}</span></div>
+        <div class="feedback ${isRight?"correct":"wrong"}">
+          <div>${isRight ? "✅ Correct!" : "❌ Not quite — the answer was " + r.next + "."}</div>
+          <div style="color:var(--ink-soft); font-size:14px; margin-top:6px;">${escapeHtml(r.why)}</div>
         </div>
         <div class="row right" style="margin-top:14px;">
-          <button class="btn" id="continueBtn">Continue →</button>
-        </div>
-      `;
+          <button class="btn" id="continueBtn">${idx+1 < rounds.length ? "Next →" : "Continue →"}</button>
+        </div>`;
       document.getElementById("continueBtn").addEventListener("click", ()=>{
-        finishRound("Risk & Probability", `You nailed ${tally} of ${total} probability questions.`);
+        renderPatternRound(rounds, idx+1, correctCount + (isRight?1:0));
       });
+    }
+    document.getElementById("seqSubmit").addEventListener("click", submit);
+    input.addEventListener("keydown", e=>{ if(e.key === "Enter") submit(); });
+  }
+
+  /* -------------------- Round: Market Read (click + type on a real chart) -------------------- */
+  function renderMarket(){
+    renderMarketTask(0, 0);
+  }
+
+  function renderMarketTask(idx, correctCount){
+    if(idx >= MARKET_TASKS.length){
+      const score = Math.round(correctCount/MARKET_TASKS.length*100);
+      finishGauntletRound("market", score, `You nailed ${correctCount} of ${MARKET_TASKS.length} chart reads.`);
+      return;
+    }
+    const task = MARKET_TASKS[idx];
+    card.innerHTML = `
+      ${hud("Market Read")}
+      <div class="eyebrow">Chart Task ${idx+1} of ${MARKET_TASKS.length}</div>
+      <div class="prompt">${escapeHtml(task.prompt)}</div>
+      <canvas id="mrChart" width="480" height="150" style="width:100%; max-width:480px; height:150px; cursor:${task.kind==='click'?'pointer':'default'};"></canvas>
+      ${task.kind === "type" ? `
+        <div class="stage-input" style="margin-top:12px;">
+          <input type="text" inputmode="decimal" id="mrInput" placeholder="e.g. 12.5" autocomplete="off" />
+          <button class="btn" id="mrSubmit" type="button">Submit</button>
+        </div>` : ""}
+      <div id="feedbackSlot"></div>
+      ${footer()}
+    `;
+    drawSpark();
+    drawTrendChart("mrChart", CHART_DATA, CHART_DATA.map((_,i)=>"D"+(i+1)), v=>"$"+v);
+    const canvas = document.getElementById("mrChart");
+
+    function lockAndShow(isRight, extra){
+      document.getElementById("feedbackSlot").innerHTML = `
+        <div class="feedback ${isRight?"correct":"wrong"}">
+          <div>${isRight ? "✅ Correct." : "❌ Not quite."} ${extra||""}</div>
+          <div style="color:var(--ink-soft); font-size:14px; margin-top:6px;">${escapeHtml(task.why)}</div>
+        </div>
+        <div class="row right" style="margin-top:14px;">
+          <button class="btn" id="continueBtn">${idx+1 < MARKET_TASKS.length ? "Next →" : "Continue →"}</button>
+        </div>`;
+      document.getElementById("continueBtn").addEventListener("click", ()=>{
+        renderMarketTask(idx+1, correctCount + (isRight?1:0));
+      });
+    }
+
+    if(task.kind === "click"){
+      function handler(evt){
+        canvas.removeEventListener("click", handler);
+        const p = canvasLocalPoint(canvas, evt);
+        const pts = chartPointPositions(canvas.width, canvas.height, CHART_DATA);
+        let bestIdx = 0, bestDist = Infinity;
+        pts.forEach((pt,i)=>{
+          const d = (pt.x-p.x)**2 + (pt.y-p.y)**2;
+          if(d < bestDist){ bestDist = d; bestIdx = i; }
+        });
+        lockAndShow(bestIdx === task.targetIndex, `You clicked Day ${bestIdx+1}.`);
+      }
+      canvas.addEventListener("click", handler);
+    } else {
+      const input = document.getElementById("mrInput");
+      input.focus();
+      function submit(){
+        const val = Number(input.value.trim());
+        const isRight = Math.abs(val - task.answer) <= task.tolerance;
+        input.disabled = true;
+        document.getElementById("mrSubmit").disabled = true;
+        lockAndShow(isRight, "");
+      }
+      document.getElementById("mrSubmit").addEventListener("click", submit);
+      input.addEventListener("keydown", e=>{ if(e.key === "Enter") submit(); });
+    }
+  }
+
+  /* -------------------- Round: Risk Desk -------------------- */
+  function renderRisk(){
+    card.innerHTML = `
+      ${hud("Risk Desk")}
+      <div class="eyebrow">Place One Bet</div>
+      <div class="prompt">Two dice, one round. Pick the bet you'd actually take —
+        payout and true odds are both shown up front.</div>
+      <div class="options" id="bets"></div>
+      <div id="feedbackSlot"></div>
+      ${footer()}
+    `;
+    drawSpark();
+    const wrap = document.getElementById("bets");
+    BETS.forEach(b=>{
+      const btn = document.createElement("button");
+      btn.className = "opt";
+      btn.type = "button";
+      btn.innerHTML = `<strong>${escapeHtml(b.label)}</strong> — ${escapeHtml(b.payout)}<br>
+        <span style="font-size:12.5px; color:var(--ink-soft);">${escapeHtml(b.detail)}</span>`;
+      btn.addEventListener("click", ()=>{
+        document.querySelectorAll("#bets .opt").forEach(x=>x.disabled = true);
+        btn.classList.add(b.ev >= 0 ? "correct" : "wrong");
+        rollForBet(b);
+      });
+      wrap.appendChild(btn);
+    });
+  }
+
+  function rollForBet(b){
+    const d1 = 1+Math.floor(Math.random()*6), d2 = 1+Math.floor(Math.random()*6), sum = d1+d2;
+    let won = false;
+    if(b.id === "a") won = sum === 7;
+    else if(b.id === "b") won = sum % 2 === 0;
+    else won = sum >= 10;
+    const score = b.ev >= 0 ? 100 : 40;
+    document.getElementById("feedbackSlot").innerHTML = `
+      <div class="prompt num" style="font-size:28px; margin:10px 0;">🎲 ${d1} + 🎲 ${d2} = ${sum}</div>
+      <div class="feedback ${b.ev>=0?"correct":"wrong"}">
+        <div>${won ? "🎲 The dice landed in your favor." : "🎲 The dice didn't cooperate this time."}</div>
+        <div style="color:var(--ink-soft); font-size:14px; margin-top:6px;">
+          ${b.ev >= 0
+            ? "This bet is fair — the payout matches the true odds, zero house edge."
+            : "This bet pays worse than the true odds — a real market maker would avoid it no matter how the dice land."}
+        </div>
+      </div>
+      <div class="row right" style="margin-top:14px;"><button class="btn" id="continueBtn">Continue →</button></div>`;
+    document.getElementById("continueBtn").addEventListener("click", ()=>{
+      finishGauntletRound("risk", score, score >= 100 ? "You took a fair bet — solid risk judgment." : "You took a bet with negative expected value.");
     });
   }
 
@@ -898,7 +1049,7 @@
   }
 
   function describeValue(v){
-    if(Number.isNaN(v)) return "NaN";
+    if(typeof v === "number" && Number.isNaN(v)) return "NaN";
     if(v === undefined) return "undefined";
     return JSON.stringify(v);
   }
@@ -917,8 +1068,7 @@
     `).join("");
   }
 
-  function renderCodeRound(cfg){
-    roundStartOffer = state.offer;
+  function renderCodeRound(cfg, type){
     card.innerHTML = `
       ${hud("Technical Round")}
       <div class="eyebrow">${escapeHtml(cfg.title)}</div>
@@ -958,53 +1108,92 @@
       renderTestResults(results, error);
       const passed = results.filter(r=>r.pass).length;
       const total = results.length;
-      const delta = passed === total ? 6000 : passed > 0 ? 2500 : -1000;
-      applyDelta(delta);
-      if(passed === total) showToast("🔥 All tests passed!");
+      const score = Math.round(passed/total*100);
       document.getElementById("codeEditor").disabled = true;
       document.getElementById("runTestsBtn").disabled = true;
       e.currentTarget.disabled = true;
       const fb = document.getElementById("feedbackSlot");
       fb.innerHTML = `
         <div class="feedback ${passed===total?"correct":passed>0?"":"wrong"}">
-          <div>${passed===total?"✅ All tests passed. Nice engineering.":passed>0?"🟡 Partial credit — some tests failed.":"❌ No tests passed."}
-            <span class="delta ${delta>=0?"up":"down"}">${delta>=0?"+":""}${money(delta)}</span>
-          </div>
+          <div>${passed===total?"✅ All tests passed. Nice engineering.":passed>0?"🟡 Partial credit — some tests failed.":"❌ No tests passed."}</div>
         </div>
         <div class="row right" style="margin-top:14px;">
           <button class="btn" id="continueBtn">Continue →</button>
         </div>
       `;
       document.getElementById("continueBtn").addEventListener("click", ()=>{
-        finishRound(cfg.title, `You passed ${passed} of ${total} test cases.`);
+        finishGauntletRound(type, score, `You passed ${passed} of ${total} test cases.`);
       });
     });
   }
 
-  /* -------------------- End screen -------------------- */
+  /* ================================================================ */
+  /* Final results                                                      */
+  /* ================================================================ */
+  function computeFinalScore(){
+    const gr = state.roundResults.filter(r=>r.weight);
+    const totalWeight = gr.reduce((s,r)=>s+r.weight,0) || 1;
+    const weighted = gr.reduce((s,r)=>s+r.score*r.weight,0);
+    const base = weighted/totalWeight;
+    return Math.max(0, Math.min(100, Math.round(base + state.pathBonus)));
+  }
+
+  function tierFor(score){
+    for(const t of SALARY_TIERS){ if(score >= t.min && score <= t.max) return t; }
+    return SALARY_TIERS[0];
+  }
+
   function renderEnd(){
-    const rank = rankFor(state.offer);
-    const netDelta = state.offer - START_OFFER;
-    const cleared = state.roundResults.filter(r=>r.delta > 0).length;
+    const finalScore = computeFinalScore();
+    const tier = tierFor(finalScore);
+    let compHtml;
+    if(tier.type === "none"){
+      compHtml = `<div class="stat"><div class="label">Outcome</div><div class="value">$0</div></div>`;
+    } else {
+      const figure = moneyRound(tier.low + Math.random()*(tier.high-tier.low));
+      if(tier.type === "base"){
+        const bonus = moneyRound(figure*0.15);
+        compHtml = `
+          <div class="stat"><div class="label">Base Salary</div><div class="value">${money(figure)}</div></div>
+          <div class="stat"><div class="label">Est. Bonus</div><div class="value">${money(bonus)}</div></div>`;
+      } else {
+        const base = moneyRound(figure*0.4);
+        const bonus = moneyRound(figure-base);
+        compHtml = `
+          <div class="stat"><div class="label">Total First-Year Comp</div><div class="value">${money(figure)}</div></div>
+          <div class="stat"><div class="label">≈ Base / Bonus Split</div><div class="value" style="font-size:14px;">${money(base)} / ${money(bonus)}</div></div>`;
+      }
+    }
+    const scorecardRows = state.roundResults.filter(r=>r.weight).map(r=>`
+      <div class="test-row"><span>${escapeHtml(r.label)}</span><span class="num" style="color:${r.score>=60?'var(--profit)':'var(--loss)'}">${r.score}/100</span></div>
+    `).join("");
+
     card.innerHTML = `
-      <div class="eyebrow">Quant Interview — Final Decision</div>
+      <div class="eyebrow">Final Decision</div>
       <h1>${escapeHtml(state.name)}'s Offer Letter</h1>
-      <div class="rank-badge">${rank.title}</div>
-      <p style="color:var(--ink-soft); margin:0 0 6px;">${rank.note}</p>
-      <canvas id="endChart" width="480" height="160" style="width:100%; max-width:480px; height:160px; margin-top:10px;"></canvas>
-      <div class="stat-grid">
-        <div class="stat"><div class="label">Final Offer</div><div class="value">${money(state.offer)}</div></div>
-        <div class="stat"><div class="label">Net Change</div><div class="value" style="color:${netDelta>=0?'var(--profit)':'var(--loss)'}">${netDelta>=0?"+":""}${money(netDelta)}</div></div>
-        <div class="stat"><div class="label">Rounds Cleared</div><div class="value">${cleared} / ${TOTAL_ROUNDS}</div></div>
-        <div class="stat"><div class="label">Mental Math</div><div class="value">${state.mentalMathCorrect} correct</div></div>
+      <div class="rank-badge">${escapeHtml(tier.title)}</div>
+      <p style="color:var(--ink-soft); margin:0 0 10px;">${escapeHtml(tier.note)}</p>
+      <canvas id="endChart" width="480" height="150" style="width:100%; max-width:480px; height:150px;"></canvas>
+      <div class="stat-grid" style="margin-top:14px;">
+        <div class="stat"><div class="label">Interview Score</div><div class="value">${finalScore}/100</div></div>
+        <div class="stat"><div class="label">Path Bonus</div><div class="value">+${state.pathBonus}</div></div>
+        ${compHtml}
       </div>
-      <div class="row">
-        <button class="btn" id="restartBtn">Interview Again</button>
+      <h3 style="margin:16px 0 8px; font-size:15px;">Interview Scorecard</h3>
+      <div>${scorecardRows}</div>
+      <p style="font-size:12px; color:var(--ink-soft); margin-top:12px;">
+        Figures reflect realistic 2025 U.S. market ranges for entry-level quant roles —
+        not a guarantee, and top-tier prop-trading offers like the top band go to a very small slice of applicants.
+      </p>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn" id="restartBtn">Try Again</button>
         <button class="btn secondary" id="glossaryBtn2">📘 Cheat Sheet</button>
       </div>
     `;
-    drawPriceChart("endChart", state.history);
-    document.getElementById("restartBtn").addEventListener("click", ()=>{ renderStart(); });
+    if(state.scoreHistory.length >= 2){
+      drawTrendChart("endChart", state.scoreHistory, null, v=>Math.round(v)+"%");
+    }
+    document.getElementById("restartBtn").addEventListener("click", renderStart);
     document.getElementById("glossaryBtn2").addEventListener("click", ()=>{
       document.getElementById("glossary").showModal();
     });

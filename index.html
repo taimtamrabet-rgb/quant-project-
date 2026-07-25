@@ -355,6 +355,144 @@
       note:"Total first-year comp in line with 2025 new-grad offers at firms like Jane Street, Citadel Securities, Optiver, and Two Sigma." }
   ];
 
+  // Multi-year career ladders per starting tier (index matches SALARY_TIERS).
+  // Ranges are grounded in 2025 U.S. market comp data (levels.fyi, eFinancialCareers,
+  // WSO compensation reports) for each track's typical promotion cadence.
+  const CAREER_TRACKS = {
+    1: { name:"Operations", canFoundFund:false, levels:[
+      { title:"Operations Analyst", low:65000, high:78000, promoYears:2 },
+      { title:"Senior Operations Analyst", low:78000, high:95000, promoYears:3 },
+      { title:"Operations Manager", low:95000, high:125000, promoYears:4 },
+      { title:"Head of Operations", low:125000, high:165000, promoYears:99 }
+    ]},
+    2: { name:"Quant Development", canFoundFund:true, levels:[
+      { title:"Quant Developer", low:95000, high:135000, promoYears:2 },
+      { title:"Senior Quant Developer", low:135000, high:185000, promoYears:2 },
+      { title:"Lead Quant Developer", low:185000, high:260000, promoYears:3 },
+      { title:"Head of Quant Technology", low:260000, high:400000, promoYears:99 }
+    ]},
+    3: { name:"Bulge-Bracket Bank", canFoundFund:true, levels:[
+      { title:"Quant Analyst", low:175000, high:230000, promoYears:3 },
+      { title:"Quant Associate", low:250000, high:380000, promoYears:2 },
+      { title:"Quant Vice President", low:400000, high:650000, promoYears:3 },
+      { title:"Quant Director", low:650000, high:1100000, promoYears:4 },
+      { title:"Managing Director", low:1200000, high:3000000, promoYears:99 }
+    ]},
+    4: { name:"Systematic Fund", canFoundFund:true, levels:[
+      { title:"Quant Researcher", low:210000, high:300000, promoYears:2 },
+      { title:"Senior Quant Researcher", low:320000, high:480000, promoYears:2 },
+      { title:"Principal Quant", low:500000, high:800000, promoYears:3 },
+      { title:"Head of Strategy", low:900000, high:1600000, promoYears:99 }
+    ]},
+    5: { name:"Elite Prop Trading", canFoundFund:true, levels:[
+      { title:"Quant Trader", low:350000, high:650000, promoYears:2 },
+      { title:"Senior Quant Trader", low:600000, high:1000000, promoYears:2 },
+      { title:"VP / Principal Quant", low:1000000, high:1800000, promoYears:3 },
+      { title:"Director / Portfolio Manager", low:1800000, high:3500000, promoYears:4 },
+      { title:"Partner", low:4000000, high:10000000, promoYears:99 }
+    ]}
+  };
+
+  // Judgment-call trivia pulled from real quant-interview themes: EV, Kelly,
+  // Greeks, Sharpe, adverse selection, annualized vol.
+  const DECISION_POOL = [
+    { prompt:"A trade has a 60% chance to make $100,000 and a 40% chance to lose $80,000. What's its expected value?",
+      options:["$28,000","$20,000","$8,000","−$12,000"], correct:0,
+      why:"EV = 0.6×$100k − 0.4×$80k = $60k − $32k = $28,000." },
+    { prompt:"A fair coin bet doubles your stake on heads and loses it all on tails. What does the Kelly Criterion say to bet?",
+      options:["0% of your bankroll","25% of your bankroll","50% of your bankroll","100% of your bankroll"], correct:0,
+      why:"The bet has zero expected value, so Kelly sizes it at 0% — never bet on a fair coin flip." },
+    { prompt:"Which option Greek measures sensitivity to changes in implied volatility?",
+      options:["Vega","Delta","Theta","Gamma"], correct:0,
+      why:"Vega measures how much an option's price moves per 1-point change in implied vol." },
+    { prompt:"Fund A returns 12% with 20% volatility. Fund B returns 8% with 8% volatility. Risk-free rate is 2%. Which has the better Sharpe ratio?",
+      options:["Fund B","Fund A","They're equal","Not enough information"], correct:0,
+      why:"Sharpe A = (12−2)/20 = 0.50. Sharpe B = (8−2)/8 = 0.75 — B wins on a risk-adjusted basis." },
+    { prompt:"A market maker keeps getting run over on stale quotes right before news drops. What's this failure mode called?",
+      options:["Adverse selection","Slippage","Backwardation","Basis risk"], correct:0,
+      why:"Adverse selection: informed traders pick off your quotes before you can update them." },
+    { prompt:"A stock's daily return std dev is 2%. Roughly what's its annualized volatility (252 trading days)?",
+      options:["≈ 32%","≈ 2%","≈ 50%","≈ 8%"], correct:0,
+      why:"Vol scales with √time: 2% × √252 ≈ 2% × 15.9 ≈ 32%." },
+    { prompt:"You short a stock at $50 and it's now $80. What's your position's return?",
+      options:["−60%","−37.5%","−160%","+60%"], correct:0,
+      why:"Short P&L% = (entry − current)/entry = (50−80)/50 = −60%." },
+    { prompt:"A strategy nets a Sharpe ratio of 0.3 after fees. Should a top fund allocate serious capital to it?",
+      options:["No — that's weak on a risk-adjusted basis","Yes — any positive Sharpe is fundable","Yes — 0.3 is elite","Can't tell without knowing the ticker"], correct:0,
+      why:"Institutional books typically want Sharpe well above 1.0; 0.3 is too noisy to size up." }
+  ];
+
+  // On-the-desk coding challenges. Numeric-expected tests may carry a `tol`
+  // for floating-point tolerance instead of exact match.
+  const CAREER_CHALLENGES = [
+    { title:"3AM Incident: Fix the VWAP", fnName:"vwap",
+      prompt:"Production alert: the desk's volume-weighted average price function is returning garbage. Find and fix the bug in vwap(prices, volumes).",
+      starter:
+`function vwap(prices, volumes) {
+  let numerator = 0, denominator = 0;
+  for (let i = 0; i < prices.length; i++) {
+    numerator += prices[i];
+    denominator += volumes[i];
+  }
+  return numerator / denominator;
+}`,
+      tests:[
+        { args:[[10,20,30],[100,100,100]], expected:20, tol:0.01 },
+        { args:[[10,20],[300,100]], expected:12.5, tol:0.01 },
+        { args:[[5,5,5],[1,2,3]], expected:5, tol:0.01 }
+      ],
+      hint:"VWAP weights each price by its own volume: sum(price×volume) ÷ sum(volume)." },
+    { title:"Write: Max Drawdown", fnName:"maxDrawdown",
+      prompt:"Risk wants a function that returns the maximum drawdown of an equity curve, as a positive percentage (e.g. 25 for a 25% drawdown from peak).",
+      starter:
+`function maxDrawdown(prices) {
+  // your code here
+
+}`,
+      tests:[
+        { args:[[100,120,90,110,80,130]], expected:33.33, tol:0.5 },
+        { args:[[100,110,120,130]], expected:0, tol:0.01 },
+        { args:[[100,50,100]], expected:50, tol:0.5 }
+      ],
+      hint:"Track the running peak as you scan left to right. At each point, drawdown = (peak − price) / peak. Return the largest one, ×100." },
+    { title:"Write: Sharpe Ratio", fnName:"sharpeRatio",
+      prompt:"Write sharpeRatio(returns, riskFreeDaily) that annualizes the Sharpe ratio from a list of daily decimal returns (252 trading days/year). Round to 2 decimals.",
+      starter:
+`function sharpeRatio(returns, riskFreeDaily) {
+  // your code here
+
+}`,
+      tests:[
+        { args:[[0.01,-0.005,0.008,0.002,-0.001], 0], expected:2.53, tol:0.3 },
+        { args:[[0.001,0.001,0.001,0.001], 0], expected:0, tol:9999 },
+        { args:[[0.02,-0.02,0.02,-0.02], 0], expected:0, tol:0.5 }
+      ],
+      hint:"mean(excess returns) / stdDev(excess returns) × √252, where excess = daily return − riskFreeDaily." }
+  ];
+
+  const FUND_STRATEGIES = [
+    { id:"momentum", name:"Systematic Momentum", blurb:"Ride trends. Strong in trending markets, painful in choppy ones.", mod:2, bullBonus:5, bearPenalty:-3 },
+    { id:"statarb", name:"Statistical Arbitrage", blurb:"Mean-reversion pairs trading. Steadier returns, lower ceiling.", mod:0, bullBonus:0, bearPenalty:0 },
+    { id:"marketmaking", name:"Market Making", blurb:"Capture the bid-ask spread all day. Low variance, thin margins.", mod:-1, bullBonus:0, bearPenalty:2 },
+    { id:"macro", name:"Discretionary Macro", blurb:"Big directional bets on rates, FX, and indices. High variance, high upside.", mod:3, bullBonus:4, bearPenalty:-6 }
+  ];
+
+  const FUND_LEVERAGE = [
+    { id:"low", label:"Conservative (0.6×)", mult:0.55, note:"Dampens both gains and losses. Investors sleep well." },
+    { id:"mid", label:"Standard (1.0×)", mult:1.0, note:"Full exposure to your signal, no amplification." },
+    { id:"high", label:"Aggressive (1.8×)", mult:1.7, note:"Amplifies your edge — and your blow-up risk." }
+  ];
+
+  const MARKET_REGIMES = [
+    { id:"bull", label:"Risk-On Bull Run", shift:7, drift:0.0028, vol:0.011 },
+    { id:"choppy", label:"Choppy, Range-Bound", shift:0, drift:0.0002, vol:0.017 },
+    { id:"bear", label:"Risk-Off Drawdown", shift:-7, drift:-0.0022, vol:0.019 }
+  ];
+
+  const PITCH_TARGET = "Our fund runs a systematic strategy with a disciplined risk process, and I'm putting my own capital in alongside yours from day one.";
+
+  const CAREER_YEAR_SAVE_RATE = 0.30;
+
   /* ================================================================ */
   /* State + small helpers                                             */
   /* ================================================================ */
@@ -371,7 +509,9 @@
       roundResults: [],
       scoreHistory: [],
       pathBonus: 0,
-      preScores: {}
+      preScores: {},
+      career: null,
+      fund: null
     };
   }
 
@@ -1040,7 +1180,10 @@
     const results = tests.map(t=>{
       try {
         const actual = fn(...t.args);
-        return { pass: JSON.stringify(actual) === JSON.stringify(t.expected), actual, expected:t.expected, args:t.args };
+        const pass = (typeof t.tol === "number" && typeof actual === "number")
+          ? Math.abs(actual - t.expected) <= t.tol
+          : JSON.stringify(actual) === JSON.stringify(t.expected);
+        return { pass, actual, expected:t.expected, args:t.args };
       } catch(e){
         return { pass:false, error:e.message, expected:t.expected, args:t.args };
       }
@@ -1146,11 +1289,14 @@
   function renderEnd(){
     const finalScore = computeFinalScore();
     const tier = tierFor(finalScore);
+    const trackId = SALARY_TIERS.indexOf(tier);
     let compHtml;
+    let firstYearComp = 0;
     if(tier.type === "none"){
       compHtml = `<div class="stat"><div class="label">Outcome</div><div class="value">$0</div></div>`;
     } else {
       const figure = moneyRound(tier.low + Math.random()*(tier.high-tier.low));
+      firstYearComp = figure;
       if(tier.type === "base"){
         const bonus = moneyRound(figure*0.15);
         compHtml = `
@@ -1186,7 +1332,8 @@
         not a guarantee, and top-tier prop-trading offers like the top band go to a very small slice of applicants.
       </p>
       <div class="row" style="margin-top:10px;">
-        <button class="btn" id="restartBtn">Try Again</button>
+        ${tier.type !== "none" ? `<button class="btn" id="continueCareerBtn">Start the Job → Year 1 at the Desk</button>` : ""}
+        <button class="btn ${tier.type !== "none" ? "secondary" : ""}" id="restartBtn">${tier.type !== "none" ? "Start Over" : "Try Again"}</button>
         <button class="btn secondary" id="glossaryBtn2">📘 Cheat Sheet</button>
       </div>
     `;
@@ -1197,6 +1344,610 @@
     document.getElementById("glossaryBtn2").addEventListener("click", ()=>{
       document.getElementById("glossary").showModal();
     });
+    const continueBtn = document.getElementById("continueCareerBtn");
+    if(continueBtn){
+      continueBtn.addEventListener("click", ()=>{ initCareer(trackId, tier, firstYearComp); });
+    }
+  }
+
+  /* ================================================================ */
+  /* Career mode: years on the desk, promotions, raises                */
+  /* ================================================================ */
+  function initCareer(trackId, tier, firstYearComp){
+    const track = CAREER_TRACKS[trackId];
+    state.career = {
+      trackId, trackName: track.name, canFoundFund: track.canFoundFund,
+      levelIndex: 0, yearsAtLevel: 0, totalYears: 0,
+      lowScoreStreak: 0,
+      savings: Math.round(firstYearComp * CAREER_YEAR_SAVE_RATE),
+      compHistory: [firstYearComp],
+      usedChallenges: [], usedDecisions: [],
+      title: track.levels[0].title
+    };
+    renderCareerIntro();
+  }
+
+  function careerHud(sub){
+    const c = state.career;
+    return `
+      <div class="hud">
+        <div><div class="label">${escapeHtml(c.title)}</div><div class="value">${escapeHtml(state.name)}</div></div>
+        <div><div class="label">${escapeHtml(sub || "Year")}</div><div class="value">Year ${c.totalYears + 1}</div></div>
+        <div><div class="label">Savings</div><div class="value num">${money(c.savings)}</div></div>
+      </div>`;
+  }
+
+  function renderCareerIntro(){
+    const c = state.career;
+    card.innerHTML = `
+      <div class="eyebrow">${escapeHtml(c.trackName)}</div>
+      <h1>Welcome to the desk.</h1>
+      <p class="lede">You start as a ${escapeHtml(c.title)}. Every year you'll get pulled into a live
+        production fire drill and a desk judgment call — how you handle both decides your raise,
+        your promotion timeline, and eventually whether you're ready to run your own book.</p>
+      <div class="row"><button class="btn" id="beginBtn">Begin Year 1 →</button></div>
+    `;
+    document.getElementById("beginBtn").addEventListener("click", renderCareerChallenge);
+  }
+
+  function pickFromPool(pool, used){
+    if(used.length >= pool.length) used.length = 0;
+    let idx;
+    do { idx = Math.floor(Math.random()*pool.length); } while(used.includes(idx));
+    used.push(idx);
+    return pool[idx];
+  }
+
+  function renderCareerChallenge(){
+    const c = state.career;
+    const challenge = pickFromPool(CAREER_CHALLENGES, c.usedChallenges);
+    c._pendingChallenge = challenge;
+    card.innerHTML = `
+      ${careerHud("On the Desk")}
+      <div class="eyebrow">${escapeHtml(challenge.title)}</div>
+      <div class="prompt" style="font-size:16px;">${escapeHtml(challenge.prompt)}</div>
+      <textarea id="codeEditor" spellcheck="false">${escapeHtml(challenge.starter)}</textarea>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn secondary" id="runTestsBtn" type="button">▶ Run Tests</button>
+        <button class="link-btn" id="hintBtn" type="button">Show hint</button>
+      </div>
+      <div id="testResults" style="margin-top:6px;"></div>
+      <div class="row right" style="margin-top:14px;">
+        <button class="btn" id="submitBtn">Ship It</button>
+      </div>
+      <div id="feedbackSlot"></div>
+    `;
+    document.getElementById("hintBtn").addEventListener("click", (e)=>{
+      const results = document.getElementById("testResults");
+      const p = document.createElement("p");
+      p.style.cssText = "color:var(--ink-soft); font-size:13.5px; margin-top:8px;";
+      p.textContent = "💡 " + challenge.hint;
+      results.appendChild(p);
+      e.currentTarget.disabled = true;
+    });
+    document.getElementById("runTestsBtn").addEventListener("click", ()=>{
+      const code = document.getElementById("codeEditor").value;
+      const { results, error } = runUserTests(code, challenge.fnName, challenge.tests);
+      renderTestResults(results, error);
+    });
+    document.getElementById("submitBtn").addEventListener("click", (e)=>{
+      const code = document.getElementById("codeEditor").value;
+      const { results, error } = runUserTests(code, challenge.fnName, challenge.tests);
+      renderTestResults(results, error);
+      const passed = results.filter(r=>r.pass).length;
+      const total = results.length;
+      const score = Math.round(passed/total*100);
+      document.getElementById("codeEditor").disabled = true;
+      document.getElementById("runTestsBtn").disabled = true;
+      e.currentTarget.disabled = true;
+      c._codeScore = score;
+      const fb = document.getElementById("feedbackSlot");
+      fb.innerHTML = `
+        <div class="feedback ${passed===total?"correct":passed>0?"":"wrong"}">
+          <div>${passed===total?"✅ Shipped clean. All tests passed.":passed>0?"🟡 Shipped with partial credit — some tests failed.":"❌ Broke prod. No tests passed."}</div>
+        </div>
+        <div class="row right" style="margin-top:14px;"><button class="btn" id="continueBtn">Continue to Desk Call →</button></div>`;
+      document.getElementById("continueBtn").addEventListener("click", renderCareerDecision);
+    });
+  }
+
+  function renderCareerDecision(){
+    const c = state.career;
+    const q = pickFromPool(DECISION_POOL, c.usedDecisions);
+    card.innerHTML = `
+      ${careerHud("Desk Judgment Call")}
+      <div class="eyebrow">Judgment Call</div>
+      <div class="prompt">${escapeHtml(q.prompt)}</div>
+      <div class="options" id="opts"></div>
+      <div id="feedbackSlot"></div>
+    `;
+    const wrap = document.getElementById("opts");
+    q.options.forEach((opt,i)=>{
+      const btn = document.createElement("button");
+      btn.className = "opt";
+      btn.type = "button";
+      btn.textContent = opt;
+      btn.addEventListener("click", ()=>{
+        document.querySelectorAll("#opts .opt").forEach(x=>x.disabled = true);
+        const isRight = i === q.correct;
+        btn.classList.add(isRight ? "correct" : "wrong");
+        if(!isRight) document.querySelectorAll("#opts .opt")[q.correct].classList.add("correct");
+        c._decisionScore = isRight ? 100 : 30;
+        document.getElementById("feedbackSlot").innerHTML = `
+          <div class="feedback ${isRight?"correct":"wrong"}">
+            <div>${isRight ? "✅ Correct." : "❌ Not quite."}</div>
+            <div style="color:var(--ink-soft); font-size:14px; margin-top:6px;">${escapeHtml(q.why)}</div>
+          </div>
+          <div class="row right" style="margin-top:14px;"><button class="btn" id="continueBtn">See Year-End Review →</button></div>`;
+        document.getElementById("continueBtn").addEventListener("click", applyCareerYear);
+      });
+      wrap.appendChild(btn);
+    });
+  }
+
+  function applyCareerYear(){
+    const c = state.career;
+    const track = CAREER_TRACKS[c.trackId];
+    const score = Math.round((c._codeScore||0)*0.6 + (c._decisionScore||0)*0.4);
+    const level = track.levels[c.levelIndex];
+    const frac = Math.max(0, Math.min(1, score/100));
+    const raiseJitter = 0.92 + Math.random()*0.16;
+    const comp = Math.round((level.low + (level.high-level.low)*frac) * raiseJitter);
+    c.compHistory.push(comp);
+    c.savings += Math.round(comp * CAREER_YEAR_SAVE_RATE);
+    c.totalYears++;
+    c.yearsAtLevel++;
+
+    let promoted = false;
+    if(score < 40){
+      c.lowScoreStreak++;
+    } else {
+      c.lowScoreStreak = 0;
+    }
+    if(score >= 70 && c.yearsAtLevel >= level.promoYears && c.levelIndex < track.levels.length-1){
+      c.levelIndex++;
+      c.yearsAtLevel = 0;
+      c.title = track.levels[c.levelIndex].title;
+      promoted = true;
+    }
+
+    if(c.lowScoreStreak >= 2){
+      renderCareerFired(comp);
+      return;
+    }
+
+    renderCareerReview(score, comp, promoted);
+  }
+
+  function renderCareerFired(comp){
+    const c = state.career;
+    card.innerHTML = `
+      ${careerHud("Termination")}
+      <div class="eyebrow">Performance Review</div>
+      <h1>You've been let go.</h1>
+      <p class="lede">Two years of missed numbers in a row. The desk needs people it can trust
+        under pressure, and management pulled the plug. It happens even to sharp people —
+        but it's over here.</p>
+      <div class="stat-grid">
+        <div class="stat"><div class="label">Years on the Desk</div><div class="value">${c.totalYears}</div></div>
+        <div class="stat"><div class="label">Final Title</div><div class="value" style="font-size:15px;">${escapeHtml(c.title)}</div></div>
+        <div class="stat"><div class="label">Savings Banked</div><div class="value">${money(c.savings)}</div></div>
+        <div class="stat"><div class="label">Last Comp</div><div class="value">${money(comp)}</div></div>
+      </div>
+      <div class="row" style="margin-top:14px;"><button class="btn" id="legacyBtn">See Full Report →</button></div>
+    `;
+    document.getElementById("legacyBtn").addEventListener("click", ()=>renderLegacy("fired"));
+  }
+
+  function renderCareerReview(score, comp, promoted){
+    const c = state.career;
+    const eligible = c.canFoundFund && c.savings >= 250000 && c.totalYears >= 2 && !state.fund;
+    card.innerHTML = `
+      ${careerHud("Year-End Review")}
+      <div class="eyebrow">Year ${c.totalYears} Complete</div>
+      <h1>${promoted ? "You've been promoted." : "Year-end review is in."}</h1>
+      <p class="lede">${promoted ? `New title: <strong>${escapeHtml(c.title)}</strong>.` : ""}
+        Combined performance score: <strong>${score}/100</strong>.</p>
+      <canvas id="endChart" width="480" height="150" style="width:100%; max-width:480px; height:150px;"></canvas>
+      <div class="stat-grid" style="margin-top:14px;">
+        <div class="stat"><div class="label">This Year's Comp</div><div class="value">${money(comp)}</div></div>
+        <div class="stat"><div class="label">Est. Savings Banked</div><div class="value">${money(Math.round(comp*CAREER_YEAR_SAVE_RATE))}</div></div>
+        <div class="stat"><div class="label">Total Savings</div><div class="value">${money(c.savings)}</div></div>
+        <div class="stat"><div class="label">Title</div><div class="value" style="font-size:15px;">${escapeHtml(c.title)}</div></div>
+      </div>
+      <p style="font-size:12px; color:var(--ink-soft); margin-top:10px;">
+        Savings assumes ~${Math.round(CAREER_YEAR_SAVE_RATE*100)}% banked after taxes and cost-of-living in a major finance hub.
+      </p>
+      ${eligible ? `<div class="feedback" style="margin-top:14px;"><div>💡 You've got enough saved and enough track record to raise outside capital. Ready to start your own fund?</div></div>` : ""}
+      <div class="row" style="margin-top:14px;">
+        <button class="btn" id="nextYearBtn">Another Year at the Desk →</button>
+        ${eligible ? `<button class="btn secondary" id="foundBtn">Found My Own Fund →</button>` : ""}
+        <button class="btn secondary" id="retireBtn">Cash Out & Retire</button>
+      </div>
+    `;
+    if(c.compHistory.length >= 2){
+      drawTrendChart("endChart", c.compHistory, null, v=>"$"+Math.round(v/1000)+"k");
+    }
+    document.getElementById("nextYearBtn").addEventListener("click", renderCareerChallenge);
+    document.getElementById("retireBtn").addEventListener("click", ()=>renderLegacy("retired"));
+    const foundBtn = document.getElementById("foundBtn");
+    if(foundBtn) foundBtn.addEventListener("click", renderFundOffer);
+  }
+
+  /* ================================================================ */
+  /* Fund mode: raise capital, run your own book, live or blow up      */
+  /* ================================================================ */
+  const FUND_YEAR_CAP = 8;
+  const FUND_COLLAPSE_FLOOR = 250000;
+
+  function initFund(strategy, startingAUM){
+    state.fund = {
+      strategy, aum: startingAUM, highWaterMark: startingAUM,
+      employees: 0, year: 0, aumHistory: [startingAUM], payoutHistory: [],
+      alive: true
+    };
+  }
+
+  function fundHud(sub){
+    const f = state.fund;
+    return `
+      <div class="hud">
+        <div><div class="label">${escapeHtml(f.strategy.name)}</div><div class="value">${escapeHtml(state.name)}, Founder</div></div>
+        <div><div class="label">${escapeHtml(sub || "Fund Year")}</div><div class="value">Year ${f.year + 1}</div></div>
+        <div><div class="label">AUM</div><div class="value num">${money(f.aum)}</div></div>
+      </div>`;
+  }
+
+  function renderFundOffer(){
+    card.innerHTML = `
+      <div class="eyebrow">Founding Your Own Fund</div>
+      <h1>What's the strategy?</h1>
+      <p class="lede">Every fund needs a pitch. Pick the mandate you'll run — it shapes how your
+        returns react to market regime, and what investors expect from you.</p>
+      <div class="path-grid" id="stratGrid"></div>
+    `;
+    const grid = document.getElementById("stratGrid");
+    FUND_STRATEGIES.forEach(s=>{
+      const btn = document.createElement("button");
+      btn.className = "path-card";
+      btn.type = "button";
+      btn.innerHTML = `<div class="path-title">${escapeHtml(s.name)}</div><div class="path-sub">${escapeHtml(s.blurb)}</div>`;
+      btn.addEventListener("click", ()=>{ state._pendingStrategy = s; renderFundPitch(); });
+      grid.appendChild(btn);
+    });
+  }
+
+  function renderFundPitch(){
+    card.innerHTML = `
+      <div class="eyebrow">Raising Capital · Investor Pitch</div>
+      <h1>Pitch your seed investors.</h1>
+      <p class="lede">No track record yet means no institutional money — just friends, family, and
+        angels who believe in you. Type the pitch line fast and accurately; how you deliver it
+        shapes how much they commit.</p>
+      <div class="type-target">${escapeHtml(PITCH_TARGET)}</div>
+      <textarea id="typeInput" rows="3" placeholder="Start typing..."></textarea>
+      <div class="row right" style="margin-top:10px;"><button class="btn" id="sendBtn" type="button">Deliver the Pitch</button></div>
+      <div id="feedbackSlot"></div>
+    `;
+    const input = document.getElementById("typeInput");
+    input.focus();
+    const startTime = Date.now();
+    document.getElementById("sendBtn").addEventListener("click", ()=>{
+      const typed = input.value;
+      const elapsedMin = Math.max((Date.now()-startTime)/60000, 0.05);
+      const acc = similarity(typed.trim(), PITCH_TARGET);
+      const words = PITCH_TARGET.split(/\s+/).length;
+      const wpm = words/elapsedMin;
+      const speedScore = Math.min(100, (wpm/40)*100);
+      const score = Math.round(acc*100*0.7 + speedScore*0.3);
+      input.disabled = true;
+      document.getElementById("sendBtn").disabled = true;
+      const c = state.career;
+      const seedCapital = Math.round(c.savings * 0.7);
+      const friendsFamily = Math.round(250000 + (score/100) * 3750000);
+      const startingAUM = seedCapital + friendsFamily;
+      c.savings -= seedCapital;
+      document.getElementById("feedbackSlot").innerHTML = `
+        <div class="feedback ${score>=60?'correct':'wrong'}">
+          <div>${score>=60?"✅ They're in.":"🟡 A modest commitment."} Accuracy ${Math.round(acc*100)}% · Delivery ${Math.round(wpm)} WPM</div>
+          <div style="color:var(--ink-soft); font-size:14px; margin-top:6px;">
+            You put in ${money(seedCapital)} of your own savings. Friends & family add ${money(friendsFamily)}.
+            Fund launches with ${money(startingAUM)} AUM.
+          </div>
+        </div>
+        <div class="row right" style="margin-top:14px;"><button class="btn" id="continueBtn">Launch the Fund →</button></div>`;
+      document.getElementById("continueBtn").addEventListener("click", ()=>{
+        initFund(state._pendingStrategy, startingAUM);
+        renderFundYearSetup();
+      });
+    });
+  }
+
+  function generatePriceSeries(regime, days){
+    const prices = [100];
+    for(let i=1;i<days;i++){
+      const ret = regime.drift + (Math.random()-0.5)*2*regime.vol;
+      prices.push(Math.max(1, prices[i-1]*(1+ret)));
+    }
+    return prices;
+  }
+
+  function renderFundYearSetup(){
+    const f = state.fund;
+    const regime = MARKET_REGIMES[Math.floor(Math.random()*MARKET_REGIMES.length)];
+    f._pendingRegime = regime;
+    f._pendingPrices = generatePriceSeries(regime, 40);
+    card.innerHTML = `
+      ${fundHud("New Fund Year")}
+      <div class="eyebrow">Market Read</div>
+      <div class="prompt">Desk chatter says this year is shaping up to be a <strong>${escapeHtml(regime.label)}</strong>.
+        Before you code your signal, pick your leverage — it scales your strategy's return, for better or worse.</div>
+      <div class="options" id="levOpts"></div>
+    `;
+    const wrap = document.getElementById("levOpts");
+    FUND_LEVERAGE.forEach(lv=>{
+      const btn = document.createElement("button");
+      btn.className = "opt";
+      btn.type = "button";
+      btn.innerHTML = `<strong>${escapeHtml(lv.label)}</strong><br><span style="font-size:12.5px; color:var(--ink-soft);">${escapeHtml(lv.note)}</span>`;
+      btn.addEventListener("click", ()=>{ f._pendingLeverage = lv; renderFundYearCode(); });
+      wrap.appendChild(btn);
+    });
+  }
+
+  function runSignalBacktest(code, prices){
+    let fn;
+    try {
+      const factory = new Function(code + `\nreturn typeof signal !== "undefined" ? signal : undefined;`);
+      fn = factory();
+    } catch(e){ return { error: e.message }; }
+    if(typeof fn !== "function") return { error: 'No function named "signal" was found.' };
+    let equity = 1, peakEquity = 1, maxDD = 0;
+    const dailyReturns = [];
+    try {
+      for(let i=0;i<prices.length-1;i++){
+        const posRaw = fn(prices.slice(0,i+1), i);
+        const pos = Math.max(-1, Math.min(1, Number(posRaw)||0));
+        const dayRet = (prices[i+1]-prices[i])/prices[i];
+        const stratRet = pos*dayRet;
+        dailyReturns.push(stratRet);
+        equity *= (1+stratRet);
+        peakEquity = Math.max(peakEquity, equity);
+        maxDD = Math.max(maxDD, (peakEquity-equity)/peakEquity);
+      }
+    } catch(e){ return { error: e.message }; }
+    const totalReturn = equity - 1;
+    const buyHold = (prices[prices.length-1]-prices[0])/prices[0];
+    const mean = dailyReturns.reduce((a,b)=>a+b,0)/dailyReturns.length;
+    const variance = dailyReturns.reduce((a,b)=>a+(b-mean)**2,0)/dailyReturns.length;
+    const std = Math.sqrt(variance) || 0.0001;
+    const sharpe = (mean/std) * Math.sqrt(252);
+    return { totalReturn, buyHold, maxDD, sharpe };
+  }
+
+  function renderFundYearCode(){
+    const f = state.fund;
+    card.innerHTML = `
+      ${fundHud("Code Your Alpha")}
+      <div class="eyebrow">Write: Trading Signal</div>
+      <div class="prompt" style="font-size:16px;">Write signal(prices, i) — given the price history up to
+        (and including) today, return <span class="num">1</span> to go long, <span class="num">-1</span> to
+        go short, or <span class="num">0</span> to stay flat for tomorrow. It's called once per trading day
+        across a ${f._pendingPrices.length}-day year.</div>
+      <textarea id="codeEditor" spellcheck="false">function signal(prices, i) {
+  // prices: array of closes from day 0 through today (index i)
+  // return 1 (long), -1 (short), or 0 (flat) for tomorrow
+  const today = prices[i];
+
+  return 0;
+}</textarea>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn secondary" id="runTestsBtn" type="button">▶ Run Backtest</button>
+        <button class="link-btn" id="hintBtn" type="button">Show hint</button>
+      </div>
+      <div id="testResults" style="margin-top:6px;"></div>
+      <div class="row right" style="margin-top:14px;">
+        <button class="btn" id="submitBtn" disabled>Submit & Close the Year</button>
+      </div>
+      <div id="feedbackSlot"></div>
+    `;
+    let lastResult = null;
+    document.getElementById("hintBtn").addEventListener("click", (e)=>{
+      const results = document.getElementById("testResults");
+      const p = document.createElement("p");
+      p.style.cssText = "color:var(--ink-soft); font-size:13.5px; margin-top:8px;";
+      p.textContent = "💡 A simple momentum idea: go long if today's price is above yesterday's, short if below. Mean-reversion is the opposite bet.";
+      results.appendChild(p);
+      e.currentTarget.disabled = true;
+    });
+    function runBacktest(){
+      const code = document.getElementById("codeEditor").value;
+      const result = runSignalBacktest(code, f._pendingPrices);
+      const box = document.getElementById("testResults");
+      if(result.error){
+        box.innerHTML = `<p style="color:var(--loss); font-size:13.5px;">⚠ ${escapeHtml(result.error)}</p>`;
+        document.getElementById("submitBtn").disabled = true;
+        lastResult = null;
+        return;
+      }
+      lastResult = result;
+      box.innerHTML = `
+        <div class="test-row"><span>Strategy return (this backtest)</span><span class="num" style="color:${result.totalReturn>=0?'var(--profit)':'var(--loss)'}">${(result.totalReturn*100).toFixed(1)}%</span></div>
+        <div class="test-row"><span>Buy & hold return</span><span class="num">${(result.buyHold*100).toFixed(1)}%</span></div>
+        <div class="test-row"><span>Max drawdown</span><span class="num">${(result.maxDD*100).toFixed(1)}%</span></div>
+        <div class="test-row"><span>Sharpe (backtest)</span><span class="num">${result.sharpe.toFixed(2)}</span></div>
+      `;
+      document.getElementById("submitBtn").disabled = false;
+    }
+    document.getElementById("runTestsBtn").addEventListener("click", runBacktest);
+    document.getElementById("submitBtn").addEventListener("click", (e)=>{
+      if(!lastResult) return;
+      document.getElementById("codeEditor").disabled = true;
+      document.getElementById("runTestsBtn").disabled = true;
+      e.currentTarget.disabled = true;
+      let score = 50 + (lastResult.totalReturn - lastResult.buyHold)*180 + lastResult.sharpe*8 - lastResult.maxDD*40;
+      score = Math.max(0, Math.min(100, Math.round(score)));
+      closeFundYear(score);
+    });
+  }
+
+  function closeFundYear(score){
+    const f = state.fund;
+    const regime = f._pendingRegime;
+    const leverage = f._pendingLeverage;
+    const strat = f.strategy;
+    let regimeShift = regime.shift;
+    if(regime.id === "bull") regimeShift += strat.bullBonus;
+    if(regime.id === "bear") regimeShift += strat.bearPenalty;
+    const hireBonus = f.employees * 5;
+    let annualReturnPct = -12 + score*0.55 + regimeShift + strat.mod + hireBonus;
+    annualReturnPct *= leverage.mult;
+    annualReturnPct += (Math.random()-0.5)*6;
+
+    const startAUM = f.aum;
+    const pnl = startAUM * (annualReturnPct/100);
+    let afterPnl = startAUM + pnl;
+    const managementFee = startAUM * 0.02;
+    const performanceFee = afterPnl > f.highWaterMark ? 0.20 * (afterPnl - f.highWaterMark) : 0;
+    f.highWaterMark = Math.max(f.highWaterMark, afterPnl);
+    let newAUM = afterPnl - managementFee - performanceFee;
+
+    let redemption = 0;
+    if(annualReturnPct <= -30){ redemption = Math.max(0, newAUM) * (0.5 + Math.random()*0.3); }
+    else if(annualReturnPct <= -15){ redemption = Math.max(0, newAUM) * 0.15; }
+    newAUM -= redemption;
+
+    const employeeCost = f.employees * 175000;
+    const overhead = 140000 + f.employees*20000;
+    const grossRevenue = managementFee + performanceFee;
+    const operatingCosts = employeeCost + overhead;
+    const payout = Math.max(0, Math.round(grossRevenue - operatingCosts));
+
+    f.aum = Math.max(0, Math.round(newAUM));
+    f.year++;
+    f.aumHistory.push(f.aum);
+    f.payoutHistory.push(payout);
+    state.career.savings += payout;
+
+    f._lastReport = { annualReturnPct, pnl, managementFee, performanceFee, redemption, employeeCost, overhead, payout, regime, score };
+
+    if(f.aum < FUND_COLLAPSE_FLOOR){
+      f.alive = false;
+      renderFundCollapse();
+      return;
+    }
+    renderFundYearReport();
+  }
+
+  function renderFundYearReport(){
+    const f = state.fund;
+    const r = f._lastReport;
+    card.innerHTML = `
+      ${fundHud("Year-End Fund Report")}
+      <div class="eyebrow">${escapeHtml(r.regime.label)} · Score ${r.score}/100</div>
+      <h1>${r.annualReturnPct>=0?"A green year.":"A red year."}</h1>
+      <canvas id="endChart" width="480" height="150" style="width:100%; max-width:480px; height:150px;"></canvas>
+      <div class="stat-grid" style="margin-top:14px;">
+        <div class="stat"><div class="label">Fund Return</div><div class="value" style="color:${r.annualReturnPct>=0?'var(--profit)':'var(--loss)'}">${r.annualReturnPct.toFixed(1)}%</div></div>
+        <div class="stat"><div class="label">Ending AUM</div><div class="value">${money(f.aum)}</div></div>
+        <div class="stat"><div class="label">Mgmt Fee (2%)</div><div class="value">${money(r.managementFee)}</div></div>
+        <div class="stat"><div class="label">Perf Fee (20% above HWM)</div><div class="value">${money(r.performanceFee)}</div></div>
+        <div class="stat"><div class="label">Operating Costs</div><div class="value">${money(r.employeeCost+r.overhead)}</div></div>
+        <div class="stat"><div class="label">Your Payout</div><div class="value">${money(r.payout)}</div></div>
+      </div>
+      ${r.redemption > 0 ? `<div class="feedback wrong" style="margin-top:12px;"><div>⚠ Spooked investors redeemed ${money(r.redemption)} out of the fund.</div></div>` : ""}
+      <p style="font-size:12px; color:var(--ink-soft); margin-top:10px;">
+        Fees run on the standard "2 and 20" model: 2% of AUM annually plus 20% of profits above the fund's
+        prior high-water mark, minus payroll and overhead (compliance, data, office).
+      </p>
+      <div class="row" style="margin-top:14px;">
+        ${f.year < FUND_YEAR_CAP ? `<button class="btn" id="nextYearBtn">Run Another Fund Year →</button>` : ""}
+        ${f.employees < 3 ? `<button class="btn secondary" id="hireBtn">Hire an Analyst (${money(175000)}/yr)</button>` : ""}
+        <button class="btn secondary" id="retireBtn">Wind Down & Retire</button>
+      </div>
+    `;
+    if(f.aumHistory.length >= 2){
+      drawTrendChart("endChart", f.aumHistory, null, v=>"$"+Math.round(v/1000000*10)/10+"M");
+    }
+    const nextBtn = document.getElementById("nextYearBtn");
+    if(nextBtn) nextBtn.addEventListener("click", renderFundYearSetup);
+    else { const cap = document.createElement("p"); cap.style.cssText="color:var(--ink-soft); font-size:13px; margin-top:8px;"; cap.textContent = `You've run the fund for ${FUND_YEAR_CAP} years — a full track record.`; card.querySelector(".row").before(cap); }
+    const hireBtn = document.getElementById("hireBtn");
+    if(hireBtn) hireBtn.addEventListener("click", ()=>{ f.employees++; hireBtn.remove(); });
+    document.getElementById("retireBtn").addEventListener("click", ()=>renderLegacy("fund-retired"));
+  }
+
+  function renderFundCollapse(){
+    const f = state.fund;
+    card.innerHTML = `
+      ${fundHud("Fund Closure")}
+      <div class="eyebrow">Redemptions & Wind-Down</div>
+      <h1>The fund is done.</h1>
+      <p class="lede">AUM fell below what it costs to keep the lights on. Investors have pulled
+        what's left and the fund is winding down. This happens to real launches too — most
+        first-time managers don't make it to a third fund year.</p>
+      <div class="stat-grid">
+        <div class="stat"><div class="label">Years Run</div><div class="value">${f.year}</div></div>
+        <div class="stat"><div class="label">Peak AUM</div><div class="value">${money(Math.max(...f.aumHistory))}</div></div>
+        <div class="stat"><div class="label">Final AUM</div><div class="value">${money(f.aum)}</div></div>
+        <div class="stat"><div class="label">Total Payouts Earned</div><div class="value">${money(f.payoutHistory.reduce((a,b)=>a+b,0))}</div></div>
+      </div>
+      <div class="row" style="margin-top:14px;"><button class="btn" id="legacyBtn">See Full Report →</button></div>
+    `;
+    document.getElementById("legacyBtn").addEventListener("click", ()=>renderLegacy("fund-collapsed"));
+  }
+
+  /* ================================================================ */
+  /* Legacy: whole-life final report                                   */
+  /* ================================================================ */
+  const LEGACY_TITLES = {
+    fired: "Let Go From the Desk",
+    retired: "Retired Quant",
+    "fund-retired": "Hedge Fund Founder, Retired",
+    "fund-collapsed": "Fund Founder — Wound Down"
+  };
+
+  function renderLegacy(reason){
+    const c = state.career;
+    const f = state.fund;
+    const fundPayouts = f ? f.payoutHistory.reduce((a,b)=>a+b,0) : 0;
+    const netWorth = c.savings;
+    const netWorthHistory = c.compHistory.map((_,i)=>{
+      const careerSaved = c.compHistory.slice(0,i+1).reduce((s,v)=>s+v*CAREER_YEAR_SAVE_RATE,0);
+      return Math.round(careerSaved);
+    });
+    if(f){
+      let running = netWorthHistory[netWorthHistory.length-1] || 0;
+      f.payoutHistory.forEach(p=>{ running += p; netWorthHistory.push(Math.round(running)); });
+    }
+    const title = LEGACY_TITLES[reason] || "Quant, Retired";
+    card.innerHTML = `
+      <div class="eyebrow">Career Legacy</div>
+      <h1>${escapeHtml(state.name)}'s Final Report</h1>
+      <div class="rank-badge">${escapeHtml(title)}</div>
+      <p style="color:var(--ink-soft); margin:0 0 10px;">
+        ${c.totalYears} year${c.totalYears===1?"":"s"} on the desk as a ${escapeHtml(c.trackName)} quant, finishing as ${escapeHtml(c.title)}.
+        ${f ? ` Then ${f.year} year${f.year===1?"":"s"} running your own ${escapeHtml(f.strategy.name)} fund.` : ""}
+      </p>
+      ${netWorthHistory.length >= 2 ? `<canvas id="endChart" width="480" height="150" style="width:100%; max-width:480px; height:150px;"></canvas>` : ""}
+      <div class="stat-grid" style="margin-top:14px;">
+        <div class="stat"><div class="label">Final Net Worth</div><div class="value">${money(netWorth)}</div></div>
+        <div class="stat"><div class="label">Total Career Comp</div><div class="value">${money(c.compHistory.reduce((a,b)=>a+b,0))}</div></div>
+        ${f ? `<div class="stat"><div class="label">Total Fund Payouts</div><div class="value">${money(fundPayouts)}</div></div>` : ""}
+        ${f ? `<div class="stat"><div class="label">Peak AUM Managed</div><div class="value">${money(Math.max(...f.aumHistory))}</div></div>` : ""}
+      </div>
+      <p style="font-size:12px; color:var(--ink-soft); margin-top:12px;">
+        Net worth reflects savings banked at ~${Math.round(CAREER_YEAR_SAVE_RATE*100)}% of comp plus fund payouts,
+        not gross lifetime pay — a rough but realistic model of what a quant actually keeps.
+      </p>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn" id="restartBtn">Play Again</button>
+      </div>
+    `;
+    if(netWorthHistory.length >= 2){
+      drawTrendChart("endChart", netWorthHistory, null, v=>"$"+Math.round(v/1000)+"k");
+    }
+    document.getElementById("restartBtn").addEventListener("click", renderStart);
   }
 
   /* -------------------- Ticker marquee (decorative) -------------------- */

@@ -331,31 +331,28 @@
 
   const SCHOOL_CODE_TASKS = {
     fixbug: {
-      title:"Intro to Programming: Fix the Bug", fnName:"averagePrice",
-      prompt:"Your class project is supposed to return the average of a list of prices, but it keeps returning NaN. Find and fix the bug in averagePrice.",
+      title:"Intro to Programming: Fix the Bug", fnName:"average_price",
+      prompt:"Your class project is supposed to return the average of a list of prices, but it crashes. Find and fix the bug in average_price.",
       starter:
-`function averagePrice(prices) {
-  let sum = 0;
-  for (let i = 0; i <= prices.length; i++) {
-    sum += prices[i];
-  }
-  return sum / prices.length;
-}`,
+`def average_price(prices):
+    total = 0
+    for i in range(len(prices) + 1):
+        total += prices[i]
+    return total / len(prices)`,
       tests:[
         { args:[[10,20,30]], expected:20 },
         { args:[[5,5,5,5]], expected:5 },
         { args:[[2,4]], expected:3 }
       ],
-      hint:"Look at the loop condition. What is prices[i] when i equals prices.length?"
+      hint:"Look at the range() in the loop. What index does it try to reach when i equals len(prices)?"
     },
     besttrade: {
-      title:"Capstone Project: Best Trade", fnName:"bestProfit",
-      prompt:"Write bestProfit(prices): given daily prices, return the max profit from buying on one day and selling on a later day. Return 0 if no profit is possible.",
+      title:"Capstone Project: Best Trade", fnName:"best_profit",
+      prompt:"Write best_profit(prices): given daily prices, return the max profit from buying on one day and selling on a later day. Return 0 if no profit is possible.",
       starter:
-`function bestProfit(prices) {
-  // your code here
-
-}`,
+`def best_profit(prices):
+    # your code here
+    pass`,
       tests:[
         { args:[[7,1,5,3,6,4]], expected:5 },
         { args:[[7,6,4,3,1]], expected:0 },
@@ -371,46 +368,43 @@
     { title:"3AM Incident: Fix the VWAP", fnName:"vwap",
       prompt:"Production alert: the desk's volume-weighted average price function is returning garbage. Find and fix the bug in vwap(prices, volumes).",
       starter:
-`function vwap(prices, volumes) {
-  let numerator = 0, denominator = 0;
-  for (let i = 0; i < prices.length; i++) {
-    numerator += prices[i];
-    denominator += volumes[i];
-  }
-  return numerator / denominator;
-}`,
+`def vwap(prices, volumes):
+    numerator = 0
+    denominator = 0
+    for i in range(len(prices)):
+        numerator += prices[i]
+        denominator += volumes[i]
+    return numerator / denominator`,
       tests:[
         { args:[[10,20,30],[100,100,100]], expected:20, tol:0.01 },
         { args:[[10,20],[300,100]], expected:12.5, tol:0.01 },
         { args:[[5,5,5],[1,2,3]], expected:5, tol:0.01 }
       ],
       hint:"VWAP weights each price by its own volume: sum(price×volume) ÷ sum(volume)." },
-    { title:"Risk Wants: Max Drawdown", fnName:"maxDrawdown",
+    { title:"Risk Wants: Max Drawdown", fnName:"max_drawdown",
       prompt:"Write a function that returns the maximum drawdown of an equity curve, as a positive percentage (e.g. 25 for a 25% drawdown from peak).",
       starter:
-`function maxDrawdown(prices) {
-  // your code here
-
-}`,
+`def max_drawdown(prices):
+    # your code here
+    pass`,
       tests:[
         { args:[[100,120,90,110,80,130]], expected:33.33, tol:0.5 },
         { args:[[100,110,120,130]], expected:0, tol:0.01 },
         { args:[[100,50,100]], expected:50, tol:0.5 }
       ],
       hint:"Track the running peak as you scan left to right. At each point, drawdown = (peak − price) / peak. Return the largest one, ×100." },
-    { title:"Write: Sharpe Ratio", fnName:"sharpeRatio",
-      prompt:"Write sharpeRatio(returns, riskFreeDaily) that annualizes the Sharpe ratio from a list of daily decimal returns (252 trading days/year). Round to 2 decimals.",
+    { title:"Write: Sharpe Ratio", fnName:"sharpe_ratio",
+      prompt:"Write sharpe_ratio(returns, risk_free_daily) that annualizes the Sharpe ratio from a list of daily decimal returns (252 trading days/year). Round to 2 decimals.",
       starter:
-`function sharpeRatio(returns, riskFreeDaily) {
-  // your code here
-
-}`,
+`def sharpe_ratio(returns, risk_free_daily):
+    # your code here
+    pass`,
       tests:[
-        { args:[[0.01,-0.005,0.008,0.002,-0.001], 0], expected:2.53, tol:0.3 },
+        { args:[[0.01,-0.005,0.008,0.002,-0.001], 0], expected:7.99, tol:0.3 },
         { args:[[0.001,0.001,0.001,0.001], 0], expected:0, tol:9999 },
         { args:[[0.02,-0.02,0.02,-0.02], 0], expected:0, tol:0.5 }
       ],
-      hint:"mean(excess returns) / stdDev(excess returns) × √252, where excess = daily return − riskFreeDaily." }
+      hint:"mean(excess returns) / stdDev(excess returns) × √252, where excess = daily return − risk_free_daily." }
   ];
 
   // Realistic 2025 U.S. multi-year comp ladders per track.
@@ -837,20 +831,555 @@
   /* ================================================================ */
   /* Coding task screen (shared by school + career + fund)             */
   /* ================================================================ */
+  /* ---- A small, self-contained Python-subset interpreter: tokenizer -> parser -> tree-
+     walking evaluator. No network, no dependencies, runs instantly. Covers exactly what
+     these challenges need: def/return/if/elif/else/for/while/pass/break/continue,
+     arithmetic incl. // and **, comparisons, and/or/not, list indexing (incl. negative)
+     and slicing, list literals, and the builtins len/sum/max/min/abs/round/range/print. */
+  class PyError extends Error {}
+
+  const PY_KEYWORDS = new Set(["def","return","if","elif","else","for","while","in","pass",
+    "break","continue","and","or","not","True","False","None"]);
+
+  function pyTokenize(src){
+    src = src.replace(/\t/g, "    ").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    const lines = src.split("\n");
+    const tokens = [];
+    const indentStack = [0];
+    let parenDepth = 0;
+
+    for(let lineNo=0; lineNo<lines.length; lineNo++){
+      let line = lines[lineNo];
+      const hashIdx = line.indexOf("#");
+      if(hashIdx >= 0) line = line.slice(0, hashIdx);
+
+      if(parenDepth === 0){
+        const stripped = line.replace(/^[ ]*/, "");
+        if(stripped.trim() === "") continue;
+        const indent = line.length - stripped.length;
+        if(indent > indentStack[indentStack.length-1]){
+          indentStack.push(indent);
+          tokens.push({ type:"INDENT", line:lineNo+1 });
+        } else {
+          while(indent < indentStack[indentStack.length-1]){
+            indentStack.pop();
+            tokens.push({ type:"DEDENT", line:lineNo+1 });
+          }
+          if(indent !== indentStack[indentStack.length-1]){
+            throw new PyError(`IndentationError: unindent does not match any outer indentation level (line ${lineNo+1})`);
+          }
+        }
+      }
+
+      let i = (parenDepth === 0) ? (line.length - line.replace(/^[ ]*/, "").length) : 0;
+      while(i < line.length){
+        const c = line[i];
+        if(c === " "){ i++; continue; }
+        if(/[0-9]/.test(c) || (c === "." && /[0-9]/.test(line[i+1] || ""))){
+          let j = i;
+          while(j < line.length && /[0-9.]/.test(line[j])) j++;
+          tokens.push({ type:"NUMBER", value:parseFloat(line.slice(i,j)), line:lineNo+1 });
+          i = j;
+          continue;
+        }
+        if(/[A-Za-z_]/.test(c)){
+          let j = i;
+          while(j < line.length && /[A-Za-z0-9_]/.test(line[j])) j++;
+          const word = line.slice(i,j);
+          if(PY_KEYWORDS.has(word)) tokens.push({ type:word, line:lineNo+1 });
+          else tokens.push({ type:"NAME", value:word, line:lineNo+1 });
+          i = j;
+          continue;
+        }
+        if(c === "'" || c === '"'){
+          let j = i+1;
+          while(j < line.length && line[j] !== c) j++;
+          tokens.push({ type:"STRING", value:line.slice(i+1,j), line:lineNo+1 });
+          i = j+1;
+          continue;
+        }
+        const two = line.slice(i, i+2);
+        if(["==","!=","<=",">=","//","**","+=","-=","*=","/=","%="].includes(two)){
+          if(two === "//" && line[i+2] === "="){ tokens.push({ type:"//=", line:lineNo+1 }); i += 3; continue; }
+          if(two === "**" && line[i+2] === "="){ tokens.push({ type:"**=", line:lineNo+1 }); i += 3; continue; }
+          tokens.push({ type:two, line:lineNo+1 });
+          i += 2;
+          continue;
+        }
+        if("()[]:,+-*/%<>=".includes(c)){
+          if(c === "(" || c === "[") parenDepth++;
+          if(c === ")" || c === "]") parenDepth = Math.max(0, parenDepth-1);
+          tokens.push({ type:c, line:lineNo+1 });
+          i++;
+          continue;
+        }
+        throw new PyError(`SyntaxError: unexpected character '${c}' (line ${lineNo+1})`);
+      }
+      if(parenDepth === 0) tokens.push({ type:"NEWLINE", line:lineNo+1 });
+    }
+    while(indentStack.length > 1){ indentStack.pop(); tokens.push({ type:"DEDENT", line:lines.length+1 }); }
+    tokens.push({ type:"EOF", line:lines.length+1 });
+    return tokens;
+  }
+
+  function pyParse(tokens){
+    let pos = 0;
+    function peek(o){ return tokens[pos + (o||0)]; }
+    function at(type){ return peek().type === type; }
+    function advance(){ return tokens[pos++]; }
+    function expect(type){
+      if(!at(type)) throw new PyError(`SyntaxError: expected '${type}' but got '${peek().type}' (line ${peek().line})`);
+      return advance();
+    }
+    function skipNewlines(){ while(at("NEWLINE")) advance(); }
+
+    function parseProgram(){
+      const stmts = [];
+      skipNewlines();
+      while(!at("EOF")){ stmts.push(parseStatement()); skipNewlines(); }
+      return stmts;
+    }
+    function parseBlock(){
+      expect(":"); expect("NEWLINE"); expect("INDENT");
+      const stmts = [];
+      while(!at("DEDENT") && !at("EOF")){ stmts.push(parseStatement()); skipNewlines(); }
+      expect("DEDENT");
+      return stmts;
+    }
+    function parseStatement(){
+      if(at("def")) return parseFuncDef();
+      if(at("if")) return parseIf();
+      if(at("for")) return parseFor();
+      if(at("while")) return parseWhile();
+      return parseSimpleStatement();
+    }
+    function parseFuncDef(){
+      expect("def");
+      const name = expect("NAME").value;
+      expect("(");
+      const params = [];
+      if(!at(")")){
+        params.push(expect("NAME").value);
+        while(at(",")){ advance(); params.push(expect("NAME").value); }
+      }
+      expect(")");
+      const body = parseBlock();
+      return { kind:"FuncDef", name, params, body };
+    }
+    function parseIf(){
+      expect("if");
+      const test = parseExpr();
+      const body = parseBlock();
+      let orelse = [];
+      if(at("elif")) orelse = [parseIfTail()];
+      else if(at("else")){ advance(); orelse = parseBlock(); }
+      return { kind:"If", test, body, orelse };
+    }
+    function parseIfTail(){
+      expect("elif");
+      const test = parseExpr();
+      const body = parseBlock();
+      let orelse = [];
+      if(at("elif")) orelse = [parseIfTail()];
+      else if(at("else")){ advance(); orelse = parseBlock(); }
+      return { kind:"If", test, body, orelse };
+    }
+    function parseFor(){
+      expect("for");
+      const varName = expect("NAME").value;
+      expect("in");
+      const iter = parseExpr();
+      const body = parseBlock();
+      return { kind:"For", varName, iter, body };
+    }
+    function parseWhile(){
+      expect("while");
+      const test = parseExpr();
+      const body = parseBlock();
+      return { kind:"While", test, body };
+    }
+    function parseSimpleStatement(){
+      let node;
+      if(at("return")){
+        advance();
+        let value = null;
+        if(!at("NEWLINE") && !at("EOF")) value = parseExpr();
+        node = { kind:"Return", value };
+      } else if(at("pass")){ advance(); node = { kind:"Pass" }; }
+      else if(at("break")){ advance(); node = { kind:"Break" }; }
+      else if(at("continue")){ advance(); node = { kind:"Continue" }; }
+      else {
+        const expr = parseExpr();
+        const AUG = ["+=","-=","*=","/=","//=","%=","**="];
+        if(at("=")){
+          advance();
+          const value = parseExpr();
+          node = { kind:"Assign", target:expr, value };
+        } else if(AUG.includes(peek().type)){
+          const op = advance().type.slice(0, -1);
+          const value = parseExpr();
+          node = { kind:"Assign", target:expr, value:{ kind:"BinOp", op, left:expr, right:value } };
+        } else {
+          node = { kind:"ExprStmt", value:expr };
+        }
+      }
+      if(!at("EOF")) expect("NEWLINE");
+      return node;
+    }
+
+    function parseExpr(){ return parseOr(); }
+    function parseOr(){
+      let node = parseAnd();
+      while(at("or")){ advance(); node = { kind:"BoolOp", op:"or", left:node, right:parseAnd() }; }
+      return node;
+    }
+    function parseAnd(){
+      let node = parseNot();
+      while(at("and")){ advance(); node = { kind:"BoolOp", op:"and", left:node, right:parseNot() }; }
+      return node;
+    }
+    function parseNot(){
+      if(at("not")){ advance(); return { kind:"UnaryOp", op:"not", operand:parseNot() }; }
+      return parseComparison();
+    }
+    const CMP = ["==","!=","<",">","<=",">="];
+    function parseComparison(){
+      let node = parseArith();
+      while(CMP.includes(peek().type)){
+        const op = advance().type;
+        node = { kind:"Compare", op, left:node, right:parseArith() };
+      }
+      return node;
+    }
+    function parseArith(){
+      let node = parseTerm();
+      while(at("+") || at("-")){
+        const op = advance().type;
+        node = { kind:"BinOp", op, left:node, right:parseTerm() };
+      }
+      return node;
+    }
+    function parseTerm(){
+      let node = parseFactor();
+      while(at("*") || at("/") || at("//") || at("%")){
+        const op = advance().type;
+        node = { kind:"BinOp", op, left:node, right:parseFactor() };
+      }
+      return node;
+    }
+    function parseFactor(){
+      if(at("-") || at("+")){
+        const op = advance().type;
+        return { kind:"UnaryOp", op, operand:parseFactor() };
+      }
+      return parsePower();
+    }
+    function parsePower(){
+      const base = parsePostfix();
+      if(at("**")){ advance(); return { kind:"BinOp", op:"**", left:base, right:parseFactor() }; }
+      return base;
+    }
+    function parsePostfix(){
+      let node = parseAtom();
+      for(;;){
+        if(at("[")){
+          advance();
+          let start = null, stop = null, isSlice = false;
+          if(!at(":")) start = parseExpr();
+          if(at(":")){ isSlice = true; advance(); if(!at("]")) stop = parseExpr(); }
+          expect("]");
+          node = isSlice ? { kind:"Slice", obj:node, start, stop } : { kind:"Index", obj:node, index:start };
+        } else if(at("(")){
+          advance();
+          const args = [];
+          if(!at(")")){
+            args.push(parseExpr());
+            while(at(",")){ advance(); args.push(parseExpr()); }
+          }
+          expect(")");
+          node = { kind:"Call", func:node, args };
+        } else break;
+      }
+      return node;
+    }
+    function parseAtom(){
+      const t = peek();
+      if(t.type === "NUMBER"){ advance(); return { kind:"Num", value:t.value }; }
+      if(t.type === "STRING"){ advance(); return { kind:"Str", value:t.value }; }
+      if(t.type === "NAME"){ advance(); return { kind:"Name", name:t.value }; }
+      if(t.type === "True"){ advance(); return { kind:"Bool", value:true }; }
+      if(t.type === "False"){ advance(); return { kind:"Bool", value:false }; }
+      if(t.type === "None"){ advance(); return { kind:"None" }; }
+      if(t.type === "("){ advance(); const e = parseExpr(); expect(")"); return e; }
+      if(t.type === "["){
+        advance();
+        const items = [];
+        if(!at("]")){
+          items.push(parseExpr());
+          while(at(",")){ advance(); items.push(parseExpr()); }
+        }
+        expect("]");
+        return { kind:"List", items };
+      }
+      throw new PyError(`SyntaxError: unexpected token '${t.type}' (line ${t.line})`);
+    }
+
+    return parseProgram();
+  }
+
+  class PyEnv {
+    constructor(parent){ this.vars = new Map(); this.parent = parent; }
+    get(name){
+      let e = this;
+      while(e){ if(e.vars.has(name)) return e.vars.get(name); e = e.parent; }
+      throw new PyError(`NameError: name '${name}' is not defined`);
+    }
+    set(name, value){ this.vars.set(name, value); }
+    assign(name, value){
+      let e = this;
+      while(e){ if(e.vars.has(name)){ e.vars.set(name, value); return; } e = e.parent; }
+      this.vars.set(name, value);
+    }
+  }
+
+  const PY_BREAK = { signal:"break" };
+  const PY_CONTINUE = { signal:"continue" };
+
+  function pyTruthy(v){
+    if(v === null || v === undefined) return false;
+    if(typeof v === "number") return v !== 0;
+    if(typeof v === "boolean") return v;
+    if(Array.isArray(v)) return v.length > 0;
+    if(typeof v === "string") return v.length > 0;
+    return true;
+  }
+  function pyIndex(list, idx){
+    if(!Array.isArray(list) && typeof list !== "string") throw new PyError(`TypeError: '${typeof list}' object is not subscriptable`);
+    let i = Math.trunc(idx);
+    if(i < 0) i += list.length;
+    if(i < 0 || i >= list.length) throw new PyError(`IndexError: list index out of range`);
+    return list[i];
+  }
+  function pySlice(list, start, stop){
+    const n = list.length;
+    function norm(v, def){
+      if(v === null || v === undefined) return def;
+      let i = Math.trunc(v);
+      if(i < 0) i += n;
+      return Math.max(0, Math.min(n, i));
+    }
+    const s = norm(start, 0), e = norm(stop, n);
+    return list.slice(s, Math.max(s, e));
+  }
+  function pyMod(a, b){
+    if(b === 0) throw new PyError("ZeroDivisionError: modulo by zero");
+    return ((a % b) + b) % b;
+  }
+  function pyFloorDiv(a, b){
+    if(b === 0) throw new PyError("ZeroDivisionError: integer division or modulo by zero");
+    return Math.floor(a / b);
+  }
+  function pyMakeBuiltins(){
+    function requireIterable(x){
+      if(!Array.isArray(x)) throw new PyError(`TypeError: '${typeof x}' object is not iterable`);
+      return x;
+    }
+    return {
+      len: (x) => {
+        if(Array.isArray(x) || typeof x === "string") return x.length;
+        throw new PyError(`TypeError: object of type has no len()`);
+      },
+      sum: (x) => requireIterable(x).reduce((a,b)=>a+b, 0),
+      max: (...args) => {
+        const arr = (args.length === 1 && Array.isArray(args[0])) ? args[0] : args;
+        if(!arr.length) throw new PyError("ValueError: max() arg is an empty sequence");
+        return Math.max(...arr);
+      },
+      min: (...args) => {
+        const arr = (args.length === 1 && Array.isArray(args[0])) ? args[0] : args;
+        if(!arr.length) throw new PyError("ValueError: min() arg is an empty sequence");
+        return Math.min(...arr);
+      },
+      abs: (x) => Math.abs(x),
+      round: (x, n) => {
+        if(n === undefined || n === null) return Math.round(x);
+        const f = Math.pow(10, n);
+        return Math.round(x * f) / f;
+      },
+      range: (...args) => {
+        let start = 0, stop, step = 1;
+        if(args.length === 1){ stop = args[0]; }
+        else if(args.length === 2){ start = args[0]; stop = args[1]; }
+        else { start = args[0]; stop = args[1]; step = args[2]; }
+        const out = [];
+        if(step > 0) for(let i=start; i<stop; i+=step) out.push(i);
+        else if(step < 0) for(let i=start; i>stop; i+=step) out.push(i);
+        else throw new PyError("ValueError: range() arg 3 must not be zero");
+        return out;
+      },
+      print: (...args) => {},
+    };
+  }
+
+  function pyEvalExpr(node, env){
+    switch(node.kind){
+      case "Num": return node.value;
+      case "Str": return node.value;
+      case "Bool": return node.value;
+      case "None": return null;
+      case "Name": return env.get(node.name);
+      case "List": return node.items.map(it => pyEvalExpr(it, env));
+      case "Index": return pyIndex(pyEvalExpr(node.obj, env), pyEvalExpr(node.index, env));
+      case "Slice": {
+        const obj = pyEvalExpr(node.obj, env);
+        const start = node.start ? pyEvalExpr(node.start, env) : null;
+        const stop = node.stop ? pyEvalExpr(node.stop, env) : null;
+        return pySlice(obj, start, stop);
+      }
+      case "UnaryOp": {
+        const v = pyEvalExpr(node.operand, env);
+        if(node.op === "-") return -v;
+        if(node.op === "+") return +v;
+        if(node.op === "not") return !pyTruthy(v);
+        throw new PyError(`SyntaxError: unknown unary op ${node.op}`);
+      }
+      case "BoolOp": {
+        const l = pyEvalExpr(node.left, env);
+        if(node.op === "and") return pyTruthy(l) ? pyEvalExpr(node.right, env) : l;
+        return pyTruthy(l) ? l : pyEvalExpr(node.right, env);
+      }
+      case "Compare": {
+        const l = pyEvalExpr(node.left, env), r = pyEvalExpr(node.right, env);
+        switch(node.op){
+          case "==": return JSON.stringify(l) === JSON.stringify(r);
+          case "!=": return JSON.stringify(l) !== JSON.stringify(r);
+          case "<": return l < r;
+          case ">": return l > r;
+          case "<=": return l <= r;
+          case ">=": return l >= r;
+        }
+        break;
+      }
+      case "BinOp": {
+        const l = pyEvalExpr(node.left, env), r = pyEvalExpr(node.right, env);
+        switch(node.op){
+          case "+": return (Array.isArray(l) && Array.isArray(r)) ? l.concat(r) : l + r;
+          case "-": return l - r;
+          case "*": return l * r;
+          case "/":
+            if(r === 0) throw new PyError("ZeroDivisionError: division by zero");
+            return l / r;
+          case "//": return pyFloorDiv(l, r);
+          case "%": return pyMod(l, r);
+          case "**": return Math.pow(l, r);
+        }
+        break;
+      }
+      case "Call": {
+        const fn = pyEvalExpr(node.func, env);
+        const args = node.args.map(a => pyEvalExpr(a, env));
+        return pyCallValue(fn, args);
+      }
+    }
+    throw new PyError(`SyntaxError: cannot evaluate node ${node.kind}`);
+  }
+  function pyCallValue(fn, args){
+    if(typeof fn === "function") return fn(...args);
+    if(fn && fn.__pyFunction) return pyCallFunction(fn, args);
+    throw new PyError(`TypeError: object is not callable`);
+  }
+  function pyCallFunction(fn, args){
+    const callEnv = new PyEnv(fn.closure);
+    fn.params.forEach((p, i) => callEnv.set(p, args[i] !== undefined ? args[i] : null));
+    const result = pyExecBlock(fn.body, callEnv);
+    if(result && result.signal === "return") return result.value;
+    return null;
+  }
+  function pyAssignTarget(target, value, env){
+    if(target.kind === "Name"){ env.assign(target.name, value); return; }
+    if(target.kind === "Index"){
+      const obj = pyEvalExpr(target.obj, env);
+      let i = Math.trunc(pyEvalExpr(target.index, env));
+      if(i < 0) i += obj.length;
+      if(i < 0 || i >= obj.length) throw new PyError("IndexError: list assignment index out of range");
+      obj[i] = value;
+      return;
+    }
+    throw new PyError("SyntaxError: invalid assignment target");
+  }
+  function pyExecStatement(node, env){
+    switch(node.kind){
+      case "FuncDef":
+        env.set(node.name, { __pyFunction:true, params:node.params, body:node.body, closure:env });
+        return undefined;
+      case "Assign": pyAssignTarget(node.target, pyEvalExpr(node.value, env), env); return undefined;
+      case "ExprStmt": pyEvalExpr(node.value, env); return undefined;
+      case "Return": return { signal:"return", value: node.value ? pyEvalExpr(node.value, env) : null };
+      case "Pass": return undefined;
+      case "Break": return PY_BREAK;
+      case "Continue": return PY_CONTINUE;
+      case "If": {
+        if(pyTruthy(pyEvalExpr(node.test, env))) return pyExecBlock(node.body, env);
+        if(node.orelse && node.orelse.length) return pyExecBlock(node.orelse, env);
+        return undefined;
+      }
+      case "For": {
+        const iter = pyEvalExpr(node.iter, env);
+        if(!Array.isArray(iter)) throw new PyError(`TypeError: '${typeof iter}' object is not iterable`);
+        for(const item of iter){
+          env.assign(node.varName, item);
+          const r = pyExecBlock(node.body, env);
+          if(r && r.signal === "break") break;
+          if(r && r.signal === "return") return r;
+        }
+        return undefined;
+      }
+      case "While": {
+        let guard = 0;
+        while(pyTruthy(pyEvalExpr(node.test, env))){
+          if(++guard > 200000) throw new PyError("RuntimeError: while loop is taking too long — check for an infinite loop");
+          const r = pyExecBlock(node.body, env);
+          if(r && r.signal === "break") break;
+          if(r && r.signal === "return") return r;
+        }
+        return undefined;
+      }
+    }
+    throw new PyError(`SyntaxError: cannot execute node ${node.kind}`);
+  }
+  function pyExecBlock(stmts, env){
+    for(const s of stmts){
+      const r = pyExecStatement(s, env);
+      if(r !== undefined) return r;
+    }
+    return undefined;
+  }
+  function pyCompile(code){
+    const tokens = pyTokenize(code);
+    const ast = pyParse(tokens);
+    const env = new PyEnv(null);
+    const builtins = pyMakeBuiltins();
+    for(const name in builtins) env.set(name, builtins[name]);
+    pyExecBlock(ast, env);
+    return env;
+  }
+
   function runUserTests(code, fnName, tests){
-    let fn;
+    let env;
     try {
-      const factory = new Function(code + `\nreturn typeof ${fnName} !== "undefined" ? ${fnName} : undefined;`);
-      fn = factory();
+      env = pyCompile(code);
     } catch(e){
       return { results: tests.map(t=>({ pass:false, args:t.args, expected:t.expected })), error: e.message };
     }
-    if(typeof fn !== "function"){
+    let fn;
+    try { fn = env.get(fnName); } catch(e){ fn = undefined; }
+    if(!fn || !fn.__pyFunction){
       return { results: tests.map(t=>({ pass:false, args:t.args, expected:t.expected })), error: `No function named "${fnName}" was found.` };
     }
     const results = tests.map(t=>{
       try {
-        const actual = fn(...t.args);
+        const argsCopy = t.args.map(a => Array.isArray(a) ? a.slice() : a);
+        const actual = pyCallFunction(fn, argsCopy);
         const pass = (typeof t.tol === "number" && typeof actual === "number")
           ? Math.abs(actual - t.expected) <= t.tol
           : JSON.stringify(actual) === JSON.stringify(t.expected);
@@ -1343,17 +1872,18 @@
   }
 
   function runSignalBacktest(code, prices){
-    let fn;
+    let env;
     try {
-      const factory = new Function(code + `\nreturn typeof signal !== "undefined" ? signal : undefined;`);
-      fn = factory();
+      env = pyCompile(code);
     } catch(e){ return { error: e.message }; }
-    if(typeof fn !== "function") return { error: 'No function named "signal" was found.' };
+    let fn;
+    try { fn = env.get("signal"); } catch(e){ fn = undefined; }
+    if(!fn || !fn.__pyFunction) return { error: 'No function named "signal" was found.' };
     let equity = 1, peakEquity = 1, maxDD = 0;
     const dailyReturns = [];
     try {
       for(let i=0;i<prices.length-1;i++){
-        const posRaw = fn(prices.slice(0,i+1), i);
+        const posRaw = pyCallFunction(fn, [prices.slice(0,i+1), i]);
         const pos = Math.max(-1, Math.min(1, Number(posRaw)||0));
         const dayRet = (prices[i+1]-prices[i])/prices[i];
         const stratRet = pos*dayRet;
@@ -1381,13 +1911,12 @@
         (and including) today, return <span class="num">1</span> to go long, <span class="num">-1</span> to
         go short, or <span class="num">0</span> to stay flat for tomorrow. Called once per day across a
         ${f._pendingPrices.length}-day year.</div>
-      <textarea id="codeEditor" spellcheck="false">function signal(prices, i) {
-  // prices: array of closes from day 0 through today (index i)
-  // return 1 (long), -1 (short), or 0 (flat) for tomorrow
-  const today = prices[i];
+      <textarea id="codeEditor" spellcheck="false">def signal(prices, i):
+    # prices: list of closes from day 0 through today (index i)
+    # return 1 (long), -1 (short), or 0 (flat) for tomorrow
+    today = prices[i]
 
-  return 0;
-}</textarea>
+    return 0</textarea>
       <div class="row" style="margin-top:10px;">
         <button class="btn secondary" id="runTestsBtn" type="button">▶ Run Backtest</button>
         <button class="link-btn" id="hintBtn" type="button">Show hint</button>

@@ -247,7 +247,7 @@
     <dt>No quizzes</dt><dd>There are no trivia questions to get "right." Every screen is a real-life choice with trade-offs — you decide what your character does.</dd>
     <dt>Stats</dt><dd>Intelligence, Charisma, Discipline, Health, and Happiness (0–20) build up from how you spend your years and shape what jobs and outcomes you get.</dd>
     <dt>Skill</dt><dd>A 0–100 job-performance meter, separate from your stats. It rises when you take on hard coding projects and grind, and drives raises and promotions.</dd>
-    <dt>Coding tasks</dt><dd>A handful of moments — a class project, a production bug, your own trading signal — hand you a real Python editor running right in your browser. Tests grade the code itself, not a multiple-choice guess.</dd>
+    <dt>Coding tasks</dt><dd>A handful of moments — a class project, a production bug, your own trading signal — hand you a real code editor. Tests grade the code itself, not a multiple-choice guess.</dd>
     <dt>Founding a fund</dt><dd>Once you've got savings and a track record, you can leave the desk and raise outside capital. Fees follow the real "2 and 20" hedge-fund model.</dd>
   </dl>
   <div class="row right" style="margin-top:14px;">
@@ -255,7 +255,6 @@
   </div>
 </dialog>
 
-<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 <script>
 (function(){
   "use strict";
@@ -332,28 +331,31 @@
 
   const SCHOOL_CODE_TASKS = {
     fixbug: {
-      title:"Intro to Programming: Fix the Bug", fnName:"average_price",
-      prompt:"Your class project is supposed to return the average of a list of prices, but it crashes. Find and fix the bug in average_price.",
+      title:"Intro to Programming: Fix the Bug", fnName:"averagePrice",
+      prompt:"Your class project is supposed to return the average of a list of prices, but it keeps returning NaN. Find and fix the bug in averagePrice.",
       starter:
-`def average_price(prices):
-    total = 0
-    for i in range(len(prices) + 1):
-        total += prices[i]
-    return total / len(prices)`,
+`function averagePrice(prices) {
+  let sum = 0;
+  for (let i = 0; i <= prices.length; i++) {
+    sum += prices[i];
+  }
+  return sum / prices.length;
+}`,
       tests:[
         { args:[[10,20,30]], expected:20 },
         { args:[[5,5,5,5]], expected:5 },
         { args:[[2,4]], expected:3 }
       ],
-      hint:"Look at the range() in the loop. What index does it try to reach when i equals len(prices)?"
+      hint:"Look at the loop condition. What is prices[i] when i equals prices.length?"
     },
     besttrade: {
-      title:"Capstone Project: Best Trade", fnName:"best_profit",
-      prompt:"Write best_profit(prices): given daily prices, return the max profit from buying on one day and selling on a later day. Return 0 if no profit is possible.",
+      title:"Capstone Project: Best Trade", fnName:"bestProfit",
+      prompt:"Write bestProfit(prices): given daily prices, return the max profit from buying on one day and selling on a later day. Return 0 if no profit is possible.",
       starter:
-`def best_profit(prices):
-    # your code here
-    pass`,
+`function bestProfit(prices) {
+  // your code here
+
+}`,
       tests:[
         { args:[[7,1,5,3,6,4]], expected:5 },
         { args:[[7,6,4,3,1]], expected:0 },
@@ -369,43 +371,46 @@
     { title:"3AM Incident: Fix the VWAP", fnName:"vwap",
       prompt:"Production alert: the desk's volume-weighted average price function is returning garbage. Find and fix the bug in vwap(prices, volumes).",
       starter:
-`def vwap(prices, volumes):
-    numerator = 0
-    denominator = 0
-    for i in range(len(prices)):
-        numerator += prices[i]
-        denominator += volumes[i]
-    return numerator / denominator`,
+`function vwap(prices, volumes) {
+  let numerator = 0, denominator = 0;
+  for (let i = 0; i < prices.length; i++) {
+    numerator += prices[i];
+    denominator += volumes[i];
+  }
+  return numerator / denominator;
+}`,
       tests:[
         { args:[[10,20,30],[100,100,100]], expected:20, tol:0.01 },
         { args:[[10,20],[300,100]], expected:12.5, tol:0.01 },
         { args:[[5,5,5],[1,2,3]], expected:5, tol:0.01 }
       ],
       hint:"VWAP weights each price by its own volume: sum(price×volume) ÷ sum(volume)." },
-    { title:"Risk Wants: Max Drawdown", fnName:"max_drawdown",
+    { title:"Risk Wants: Max Drawdown", fnName:"maxDrawdown",
       prompt:"Write a function that returns the maximum drawdown of an equity curve, as a positive percentage (e.g. 25 for a 25% drawdown from peak).",
       starter:
-`def max_drawdown(prices):
-    # your code here
-    pass`,
+`function maxDrawdown(prices) {
+  // your code here
+
+}`,
       tests:[
         { args:[[100,120,90,110,80,130]], expected:33.33, tol:0.5 },
         { args:[[100,110,120,130]], expected:0, tol:0.01 },
         { args:[[100,50,100]], expected:50, tol:0.5 }
       ],
       hint:"Track the running peak as you scan left to right. At each point, drawdown = (peak − price) / peak. Return the largest one, ×100." },
-    { title:"Write: Sharpe Ratio", fnName:"sharpe_ratio",
-      prompt:"Write sharpe_ratio(returns, risk_free_daily) that annualizes the Sharpe ratio from a list of daily decimal returns (252 trading days/year). Round to 2 decimals.",
+    { title:"Write: Sharpe Ratio", fnName:"sharpeRatio",
+      prompt:"Write sharpeRatio(returns, riskFreeDaily) that annualizes the Sharpe ratio from a list of daily decimal returns (252 trading days/year). Round to 2 decimals.",
       starter:
-`def sharpe_ratio(returns, risk_free_daily):
-    # your code here
-    pass`,
+`function sharpeRatio(returns, riskFreeDaily) {
+  // your code here
+
+}`,
       tests:[
         { args:[[0.01,-0.005,0.008,0.002,-0.001], 0], expected:2.53, tol:0.3 },
         { args:[[0.001,0.001,0.001,0.001], 0], expected:0, tol:9999 },
         { args:[[0.02,-0.02,0.02,-0.02], 0], expected:0, tol:0.5 }
       ],
-      hint:"mean(excess returns) / stdDev(excess returns) × √252, where excess = daily return − risk_free_daily." }
+      hint:"mean(excess returns) / stdDev(excess returns) × √252, where excess = daily return − riskFreeDaily." }
   ];
 
   // Realistic 2025 U.S. multi-year comp ladders per track.
@@ -832,91 +837,29 @@
   /* ================================================================ */
   /* Coding task screen (shared by school + career + fund)             */
   /* ================================================================ */
-  let pyodide = null;
-  let pyodideLoadPromise = null;
-
-  function ensurePyodide(){
-    if(pyodide) return Promise.resolve(pyodide);
-    if(!pyodideLoadPromise){
-      pyodideLoadPromise = (async ()=>{
-        if(typeof loadPyodide !== "function"){
-          throw new Error("The Python environment couldn't load — check your internet connection.");
-        }
-        const p = await loadPyodide();
-        pyodide = p;
-        return p;
-      })().catch(e=>{ pyodideLoadPromise = null; throw e; });
-    }
-    return pyodideLoadPromise;
-  }
-  // Start loading in the background right away, so it's likely ready by the first coding task.
-  ensurePyodide().catch(()=>{});
-
-  function formatPyError(e){
-    const msg = (e && e.message) ? e.message : String(e);
-    const lines = msg.trim().split("\n");
-    return lines[lines.length-1] || msg;
-  }
-
-  // Gates a screen behind the Python runtime being ready, showing a loading/retry
-  // state instead if it isn't (e.g. still downloading, or no internet connection).
-  function withPyodide(renderFn, loadingTitle){
-    if(pyodide){ renderFn(); return; }
-    card.innerHTML = `
-      ${lifeHud(state, "Loading")}
-      <div class="eyebrow">${escapeHtml(loadingTitle)}</div>
-      <p class="lede" id="pyStatus">Booting up the Python interpreter in your browser (first time only, a few seconds)…</p>
-    `;
-    ensurePyodide().then(renderFn).catch(e=>{
-      const el = document.getElementById("pyStatus");
-      if(!el) return;
-      el.innerHTML = `⚠ ${escapeHtml(e.message || "Couldn't load the Python environment.")}`;
-      el.insertAdjacentHTML("afterend", `<div class="row" style="margin-top:10px;"><button class="btn secondary" id="pyRetryBtn" type="button">Retry</button></div>`);
-      document.getElementById("pyRetryBtn").addEventListener("click", ()=> withPyodide(renderFn, loadingTitle));
-    });
-  }
-
   function runUserTests(code, fnName, tests){
-    const ns = pyodide.toPy({});
-    let results, error;
+    let fn;
     try {
-      pyodide.runPython(code, { globals: ns });
+      const factory = new Function(code + `\nreturn typeof ${fnName} !== "undefined" ? ${fnName} : undefined;`);
+      fn = factory();
     } catch(e){
-      error = formatPyError(e);
+      return { results: tests.map(t=>({ pass:false, args:t.args, expected:t.expected })), error: e.message };
     }
-    if(!error){
-      let fn;
-      try { fn = ns.get(fnName); } catch(e){ fn = undefined; }
-      if(typeof fn !== "function"){
-        error = `No function named "${fnName}" was found.`;
-      } else {
-        results = tests.map(t=>{
-          const pyArgs = t.args.map(a => pyodide.toPy(a));
-          try {
-            let actual = fn(...pyArgs);
-            if(actual && typeof actual.toJs === "function"){
-              const converted = actual.toJs();
-              if(actual.destroy) actual.destroy();
-              actual = converted;
-            }
-            const pass = (typeof t.tol === "number" && typeof actual === "number")
-              ? Math.abs(actual - t.expected) <= t.tol
-              : JSON.stringify(actual) === JSON.stringify(t.expected);
-            return { pass, actual, expected:t.expected, args:t.args };
-          } catch(e){
-            return { pass:false, error:formatPyError(e), expected:t.expected, args:t.args };
-          } finally {
-            pyArgs.forEach(p=>{ if(p && p.destroy) p.destroy(); });
-          }
-        });
-        if(fn.destroy) fn.destroy();
+    if(typeof fn !== "function"){
+      return { results: tests.map(t=>({ pass:false, args:t.args, expected:t.expected })), error: `No function named "${fnName}" was found.` };
+    }
+    const results = tests.map(t=>{
+      try {
+        const actual = fn(...t.args);
+        const pass = (typeof t.tol === "number" && typeof actual === "number")
+          ? Math.abs(actual - t.expected) <= t.tol
+          : JSON.stringify(actual) === JSON.stringify(t.expected);
+        return { pass, actual, expected:t.expected, args:t.args };
+      } catch(e){
+        return { pass:false, error:e.message, expected:t.expected, args:t.args };
       }
-    }
-    if(error && !results){
-      results = tests.map(t=>({ pass:false, args:t.args, expected:t.expected }));
-    }
-    ns.destroy();
-    return { results, error };
+    });
+    return { results };
   }
 
   function describeValue(v){
@@ -940,13 +883,9 @@
   }
 
   function renderCodingTask(cfg, onComplete){
-    withPyodide(()=>renderCodingTaskReady(cfg, onComplete), cfg.title);
-  }
-
-  function renderCodingTaskReady(cfg, onComplete){
     card.innerHTML = `
       ${lifeHud(state, "Coding Task")}
-      <div class="eyebrow">${escapeHtml(cfg.title)} · Python</div>
+      <div class="eyebrow">${escapeHtml(cfg.title)}</div>
       <div class="prompt" style="font-size:16px;">${escapeHtml(cfg.prompt)}</div>
       <textarea id="codeEditor" spellcheck="false">${escapeHtml(cfg.starter)}</textarea>
       <div class="row" style="margin-top:10px;">
@@ -1404,30 +1343,17 @@
   }
 
   function runSignalBacktest(code, prices){
-    const ns = pyodide.toPy({});
-    try {
-      pyodide.runPython(code, { globals: ns });
-    } catch(e){
-      ns.destroy();
-      return { error: formatPyError(e) };
-    }
     let fn;
-    try { fn = ns.get("signal"); } catch(e){ fn = undefined; }
-    if(typeof fn !== "function"){
-      ns.destroy();
-      return { error: 'No function named "signal" was found.' };
-    }
-    let equity = 1, peakEquity = 1, maxDD = 0, error = null;
+    try {
+      const factory = new Function(code + `\nreturn typeof signal !== "undefined" ? signal : undefined;`);
+      fn = factory();
+    } catch(e){ return { error: e.message }; }
+    if(typeof fn !== "function") return { error: 'No function named "signal" was found.' };
+    let equity = 1, peakEquity = 1, maxDD = 0;
     const dailyReturns = [];
-    for(let i=0;i<prices.length-1;i++){
-      const pyPrices = pyodide.toPy(prices.slice(0,i+1));
-      try {
-        let posRaw = fn(pyPrices, i);
-        if(posRaw && typeof posRaw.toJs === "function"){
-          const converted = posRaw.toJs();
-          if(posRaw.destroy) posRaw.destroy();
-          posRaw = converted;
-        }
+    try {
+      for(let i=0;i<prices.length-1;i++){
+        const posRaw = fn(prices.slice(0,i+1), i);
         const pos = Math.max(-1, Math.min(1, Number(posRaw)||0));
         const dayRet = (prices[i+1]-prices[i])/prices[i];
         const stratRet = pos*dayRet;
@@ -1435,16 +1361,8 @@
         equity *= (1+stratRet);
         peakEquity = Math.max(peakEquity, equity);
         maxDD = Math.max(maxDD, (peakEquity-equity)/peakEquity);
-      } catch(e){
-        error = formatPyError(e);
-      } finally {
-        pyPrices.destroy();
       }
-      if(error) break;
-    }
-    if(fn.destroy) fn.destroy();
-    ns.destroy();
-    if(error) return { error };
+    } catch(e){ return { error: e.message }; }
     const totalReturn = equity - 1;
     const buyHold = (prices[prices.length-1]-prices[0])/prices[0];
     const mean = dailyReturns.reduce((a,b)=>a+b,0)/dailyReturns.length;
@@ -1455,24 +1373,21 @@
   }
 
   function renderFundYearCode(){
-    withPyodide(renderFundYearCodeReady, "Code Your Alpha");
-  }
-
-  function renderFundYearCodeReady(){
     const f = state.fund;
     card.innerHTML = `
       ${fundHud("Code Your Alpha")}
-      <div class="eyebrow">Write: Trading Signal · Python</div>
+      <div class="eyebrow">Write: Trading Signal</div>
       <div class="prompt" style="font-size:16px;">Write signal(prices, i) — given the price history up to
         (and including) today, return <span class="num">1</span> to go long, <span class="num">-1</span> to
         go short, or <span class="num">0</span> to stay flat for tomorrow. Called once per day across a
         ${f._pendingPrices.length}-day year.</div>
-      <textarea id="codeEditor" spellcheck="false">def signal(prices, i):
-    # prices: list of closes from day 0 through today (index i)
-    # return 1 (long), -1 (short), or 0 (flat) for tomorrow
-    today = prices[i]
+      <textarea id="codeEditor" spellcheck="false">function signal(prices, i) {
+  // prices: array of closes from day 0 through today (index i)
+  // return 1 (long), -1 (short), or 0 (flat) for tomorrow
+  const today = prices[i];
 
-    return 0</textarea>
+  return 0;
+}</textarea>
       <div class="row" style="margin-top:10px;">
         <button class="btn secondary" id="runTestsBtn" type="button">▶ Run Backtest</button>
         <button class="link-btn" id="hintBtn" type="button">Show hint</button>

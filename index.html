@@ -332,7 +332,7 @@
   const SCHOOL_CODE_TASKS = {
     fixbug: {
       title:"Intro to Programming: Fix the Bug", fnName:"average_price",
-      prompt:"Your class project is supposed to return the average of a list of prices, but it crashes. Find and fix the bug in average_price.",
+      prompt:"This function should add up a list of prices and divide by how many there are, to get the average. Instead it crashes. Find and fix the bug.",
       starter:
 `def average_price(prices):
     total = 0
@@ -344,29 +344,36 @@
         { args:[[5,5,5,5]], expected:5 },
         { args:[[2,4]], expected:3 }
       ],
-      hint:"Look at the range() in the loop. What index does it try to reach when i equals len(prices)?"
+      hint:"Look at the range() in the loop. What index is it trying to read when i equals len(prices)?"
     },
     besttrade: {
       title:"Capstone Project: Best Trade", fnName:"best_profit",
-      prompt:"Write best_profit(prices): given daily prices, return the max profit from buying on one day and selling on a later day. Return 0 if no profit is possible.",
+      prompt:"Write best_profit(prices): if you bought on one day and sold on a later day, what's the most profit you could make? Return 0 if there's no way to profit. The loop and the two trackers are already set up — you just need to fill in the two updates.",
       starter:
 `def best_profit(prices):
-    # your code here
-    pass`,
+    lowest_so_far = prices[0]
+    best = 0
+    for price in prices:
+        profit_today = price - lowest_so_far
+        # your code here: if profit_today is bigger than best, set best = profit_today
+
+        # your code here: if price is lower than lowest_so_far, set lowest_so_far = price
+
+    return best`,
       tests:[
         { args:[[7,1,5,3,6,4]], expected:5 },
         { args:[[7,6,4,3,1]], expected:0 },
         { args:[[1,2]], expected:1 },
         { args:[[2,4,1,7]], expected:6 }
       ],
-      hint:"Scan left to right, tracking the lowest price seen so far. At each day, compare price minus that lowest to your best profit so far."
+      hint:"Every day, two questions: would selling today beat your best profit so far? And is today's price a new low?"
     }
   };
 
   // On-the-job coding tasks, picked from as part of the "Take on a hard project" action.
   const CAREER_CHALLENGES = [
     { title:"3AM Incident: Fix the VWAP", fnName:"vwap",
-      prompt:"Production alert: the desk's volume-weighted average price function is returning garbage. Find and fix the bug in vwap(prices, volumes).",
+      prompt:"This function should weight each price by how many shares traded that day (the volume) — days with more trading should count more. It's not doing that. Find and fix the bug in vwap(prices, volumes).",
       starter:
 `def vwap(prices, volumes):
     numerator = 0
@@ -380,31 +387,42 @@
         { args:[[10,20],[300,100]], expected:12.5, tol:0.01 },
         { args:[[5,5,5],[1,2,3]], expected:5, tol:0.01 }
       ],
-      hint:"VWAP weights each price by its own volume: sum(price×volume) ÷ sum(volume)." },
+      hint:"Each price should get multiplied by its own volume before it's added to the total." },
     { title:"Risk Wants: Max Drawdown", fnName:"max_drawdown",
-      prompt:"Write a function that returns the maximum drawdown of an equity curve, as a positive percentage (e.g. 25 for a 25% drawdown from peak).",
+      prompt:"Write a function that finds the biggest drop from a peak, as a percent. Example: prices go 100 → 130 → 80. The peak was 130, and it fell to 80 — that's about a 38% drawdown. The peak-tracking is already written — just fill in the one line that remembers the biggest drop.",
       starter:
 `def max_drawdown(prices):
-    # your code here
-    pass`,
+    peak = prices[0]
+    biggest_drop = 0
+    for price in prices:
+        if price > peak:
+            peak = price
+        drop = (peak - price) / peak
+        # your code here: if drop is bigger than biggest_drop, set biggest_drop = drop
+
+    return biggest_drop * 100`,
       tests:[
         { args:[[100,120,90,110,80,130]], expected:33.33, tol:0.5 },
         { args:[[100,110,120,130]], expected:0, tol:0.01 },
         { args:[[100,50,100]], expected:50, tol:0.5 }
       ],
-      hint:"Track the running peak as you scan left to right. At each point, drawdown = (peak − price) / peak. Return the largest one, ×100." },
-    { title:"Write: Sharpe Ratio", fnName:"sharpe_ratio",
-      prompt:"Write sharpe_ratio(returns, risk_free_daily) that annualizes the Sharpe ratio from a list of daily decimal returns (252 trading days/year). Round to 2 decimals.",
+      hint:"You're already computing today's drop from the peak — just keep the biggest one you've seen so far." },
+    { title:"Desk Check: Count the Up Days", fnName:"count_up_days",
+      prompt:"Write count_up_days(prices): count how many days the price closed higher than the day before.",
       starter:
-`def sharpe_ratio(returns, risk_free_daily):
-    # your code here
-    pass`,
+`def count_up_days(prices):
+    count = 0
+    for i in range(1, len(prices)):
+        pass
+        # your code here: if prices[i] is higher than prices[i - 1], add 1 to count
+
+    return count`,
       tests:[
-        { args:[[0.01,-0.005,0.008,0.002,-0.001], 0], expected:7.99, tol:0.3 },
-        { args:[[0.001,0.001,0.001,0.001], 0], expected:0, tol:9999 },
-        { args:[[0.02,-0.02,0.02,-0.02], 0], expected:0, tol:0.5 }
+        { args:[[100,105,102,110,108,120]], expected:3 },
+        { args:[[50,40,30,20,10]], expected:0 },
+        { args:[[10,20,30,40]], expected:3 }
       ],
-      hint:"mean(excess returns) / stdDev(excess returns) × √252, where excess = daily return − risk_free_daily." }
+      hint:"Compare each price to the one right before it: prices[i] vs. prices[i - 1]. You can delete the pass once you add your line." }
   ];
 
   // Realistic 2025 U.S. multi-year comp ladders per track.
@@ -1907,14 +1925,16 @@
     card.innerHTML = `
       ${fundHud("Code Your Alpha")}
       <div class="eyebrow">Write: Trading Signal</div>
-      <div class="prompt" style="font-size:16px;">Write signal(prices, i) — given the price history up to
-        (and including) today, return <span class="num">1</span> to go long, <span class="num">-1</span> to
-        go short, or <span class="num">0</span> to stay flat for tomorrow. Called once per day across a
-        ${f._pendingPrices.length}-day year.</div>
+      <div class="prompt" style="font-size:16px;">Write signal(prices, i): look at today's price
+        (prices[i]) and decide what to do tomorrow — <span class="num">1</span> to go long (you think it'll rise),
+        <span class="num">-1</span> to go short (you think it'll fall), or <span class="num">0</span> to stay flat.
+        Called once per day across a ${f._pendingPrices.length}-day year.</div>
       <textarea id="codeEditor" spellcheck="false">def signal(prices, i):
     # prices: list of closes from day 0 through today (index i)
-    # return 1 (long), -1 (short), or 0 (flat) for tomorrow
     today = prices[i]
+
+    # example idea: compare today to yesterday
+    # yesterday = prices[i - 1] if i > 0 else today
 
     return 0</textarea>
       <div class="row" style="margin-top:10px;">

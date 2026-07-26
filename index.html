@@ -1647,7 +1647,7 @@
     state.job = {
       trackId, trackName: track.name, canFoundFund: track.canFoundFund,
       levelIndex: 0, yearsAtLevel: 0, totalYears: 0,
-      lowSkillStreak: 0, skill: startSkill,
+      lowSkillStreak: 0, skill: startSkill, yearsSinceCodeTask: 0,
       title: track.levels[0].title,
       compHistory: []
     };
@@ -1692,8 +1692,31 @@
   /* ================================================================ */
   /* Career loop                                                        */
   /* ================================================================ */
+  const FUND_MONEY_REQUIRED = 250000;
+  const FUND_YEARS_REQUIRED = 2;
+
   function eligibleForFund(){
-    return state.job && state.job.canFoundFund && state.money >= 250000 && state.job.totalYears >= 2 && !state.fund;
+    return state.job && state.job.canFoundFund && state.money >= FUND_MONEY_REQUIRED && state.job.totalYears >= FUND_YEARS_REQUIRED && !state.fund;
+  }
+
+  // Guarantees a coding task shows up at least every other career year, regardless of
+  // which action the player picks, so the loop doesn't go quiet for long stretches.
+  function maybeTriggerBonusCoding(baseNote){
+    const j = state.job;
+    if(j.yearsSinceCodeTask >= 1){
+      const challenge = pickFromPool(CAREER_CHALLENGES, state.usedChallenges);
+      renderCodingTask(challenge, (passRate)=>{
+        applyEffects(state, { skill: Math.round(passRate*10) });
+        j.yearsSinceCodeTask = 0;
+        const codeNote = passRate === 1 ? "A project landed on your desk too — you shipped it clean."
+          : passRate > 0 ? "A project landed on your desk too — mixed results."
+          : "A project landed on your desk too — it didn't go well.";
+        closeCareerYear(baseNote + " " + codeNote);
+      });
+    } else {
+      j.yearsSinceCodeTask++;
+      closeCareerYear(baseNote);
+    }
   }
 
   function renderCareerYear(){
@@ -1710,6 +1733,18 @@
     if(eligibleForFund()) actions.push({ id:"foundfund", label:"Leave the desk & found your own fund", sub:"Raise outside capital and run your own book" });
     actions.push({ id:"retire", label:"Cash out & retire", sub:"End the game and see your full report" });
 
+    let fundStatHtml = "";
+    if(!state.fund){
+      if(j.canFoundFund){
+        const savedK = Math.round(Math.max(0, Math.min(state.money, FUND_MONEY_REQUIRED))/1000);
+        const targetK = Math.round(FUND_MONEY_REQUIRED/1000);
+        const yrs = Math.min(j.totalYears, FUND_YEARS_REQUIRED);
+        fundStatHtml = `<div class="stat"><div class="label">Fund Readiness</div><div class="value" style="font-size:14px;">$${savedK}k / $${targetK}k · ${yrs}/${FUND_YEARS_REQUIRED} yrs</div></div>`;
+      } else {
+        fundStatHtml = `<div class="stat"><div class="label">Fund Path</div><div class="value" style="font-size:12.5px; color:var(--ink-soft); font-weight:400;">No path on this track — try a job hunt</div></div>`;
+      }
+    }
+
     card.innerHTML = `
       ${lifeHud(state, "Year " + (j.totalYears+1))}
       <div class="eyebrow">${escapeHtml(j.trackName)} · ${escapeHtml(j.title)}</div>
@@ -1717,6 +1752,7 @@
       <div class="stat-grid" style="margin-top:0;">
         <div class="stat"><div class="label">Skill</div><div class="value">${j.skill}/100</div></div>
         <div class="stat"><div class="label">Years at Level</div><div class="value">${j.yearsAtLevel}</div></div>
+        ${fundStatHtml}
       </div>
       <div class="options" id="actionOpts"></div>
     `;
@@ -1731,6 +1767,171 @@
     });
   }
 
+  /* -------------------- Network mini-game: Work the Room -------------------- */
+  function renderNetworkMiniGame(onComplete){
+    const ng = { secondsLeft: 8, clicked: 0, timerId: null };
+    const GUEST_LABELS = shuffle(["🥂 Analyst","☕ Trader","🍸 Recruiter","🧑‍💼 VP","🥤 Alum","🍷 Founder","🧃 Engineer","🍹 PM"].slice());
+
+    function tick(){
+      ng.secondsLeft--;
+      const el = document.getElementById("nwTimer");
+      if(el) el.textContent = ng.secondsLeft + "s";
+      if(ng.secondsLeft <= 0){
+        clearInterval(ng.timerId);
+        document.querySelectorAll("#nwGrid .opt").forEach(b=>b.disabled = true);
+        finish();
+      }
+    }
+    function finish(){
+      const charismaGain = 1 + Math.min(4, Math.round(ng.clicked/2));
+      const leadChance = Math.min(0.9, ng.clicked * 0.12);
+      applyEffects(state, { charisma: charismaGain });
+      let note = `You worked the room and made ${ng.clicked} solid connection${ng.clicked===1?"":"s"}.`;
+      if(Math.random() < leadChance){ applyEffects(state, { money:1200 }); note += " One of them tips you off to a small opportunity."; }
+      setTimeout(()=> onComplete(note), 150);
+    }
+    card.innerHTML = `
+      ${lifeHud(state, "Work the Room")}
+      <div class="eyebrow">Networking Event</div>
+      <div class="prompt">Click as many people as you can before the room clears out.</div>
+      <div class="row between" style="margin-bottom:10px;">
+        <div class="num" id="nwTimer" style="font-size:22px; font-weight:700;">${ng.secondsLeft}s</div>
+        <div class="num" style="color:var(--ink-soft);">Connections: <span id="nwCount">0</span></div>
+      </div>
+      <div class="options" id="nwGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;"></div>
+    `;
+    const grid = document.getElementById("nwGrid");
+    GUEST_LABELS.forEach(label=>{
+      const btn = document.createElement("button");
+      btn.className = "opt";
+      btn.type = "button";
+      btn.textContent = label;
+      btn.addEventListener("click", ()=>{
+        if(btn.disabled) return;
+        btn.disabled = true;
+        btn.classList.add("selected");
+        ng.clicked++;
+        document.getElementById("nwCount").textContent = ng.clicked;
+      });
+      grid.appendChild(btn);
+    });
+    ng.timerId = setInterval(tick, 1000);
+  }
+
+  /* -------------------- Raise mini-game: Make Your Case -------------------- */
+  function renderRaiseMiniGame(onComplete){
+    const zoneWidth = 22;
+    const zoneStart = 12 + Math.random() * (88 - zoneWidth - 12);
+    const rg = { position:0, direction:1, timerId:null };
+
+    function tick(){
+      rg.position += rg.direction * 2.4;
+      if(rg.position >= 100){ rg.position = 100; rg.direction = -1; }
+      if(rg.position <= 0){ rg.position = 0; rg.direction = 1; }
+      const marker = document.getElementById("rgMarker");
+      if(marker) marker.style.left = rg.position + "%";
+    }
+    function stop(){
+      clearInterval(rg.timerId);
+      const stopBtn = document.getElementById("rgStopBtn");
+      if(stopBtn) stopBtn.disabled = true;
+      const center = zoneStart + zoneWidth/2;
+      const maxDist = zoneWidth/2;
+      const dist = Math.abs(rg.position - center);
+      const quality = dist <= maxDist ? (1 - dist/maxDist) : 0;
+      const j = state.job;
+      const odds = Math.min(0.95, (j.skill + state.stats.charisma*3)/150 + quality*0.3);
+      const success = Math.random() < odds;
+      let note;
+      if(success){
+        j._raiseBoost = 0.08 + quality*0.15;
+        note = quality > 0.6 ? "You nailed the pitch — timed it perfectly." : quality > 0 ? "Your pitch landed, a little rough around the edges." : "Somehow, it landed anyway.";
+        note += " Expect a bigger number this year.";
+      } else {
+        applyEffects(state, { happiness:-1 });
+        note = quality > 0 ? "Good pitch, but they said not yet." : "The pitch fell flat.";
+        note += " A little deflating, but no real damage done.";
+      }
+      setTimeout(()=> onComplete(note), 150);
+    }
+    card.innerHTML = `
+      ${lifeHud(state, "Make Your Case")}
+      <div class="eyebrow">Asking for a Raise</div>
+      <div class="prompt">Time your pitch — stop the marker inside the confident zone.</div>
+      <div style="position:relative; height:34px; background:var(--surface-2); border:1px solid var(--line); border-radius:8px; margin:14px 0; overflow:hidden;">
+        <div style="position:absolute; top:0; bottom:0; left:${zoneStart}%; width:${zoneWidth}%; background:color-mix(in srgb, var(--profit) 30%, transparent);"></div>
+        <div id="rgMarker" style="position:absolute; top:0; bottom:0; left:0%; width:3px; background:var(--ink);"></div>
+      </div>
+      <div class="row right"><button class="btn" id="rgStopBtn" type="button">Make Your Case</button></div>
+    `;
+    document.getElementById("rgStopBtn").addEventListener("click", stop);
+    rg.timerId = setInterval(tick, 30);
+  }
+
+  /* -------------------- Vacation mini-game: Recharge -------------------- */
+  function renderVacationMiniGame(onComplete){
+    const TILES = ["🏖️","📚","🎮","🎣"];
+    const sequence = [];
+    for(let i=0;i<4;i++) sequence.push(Math.floor(Math.random()*TILES.length));
+    let phase = "watch";
+    let inputIndex = 0;
+    let correctCount = 0;
+
+    function render(){
+      card.innerHTML = `
+        ${lifeHud(state, "Recharge")}
+        <div class="eyebrow">Time Off</div>
+        <div class="prompt">${phase === "watch" ? "Watch the sequence…" : "Now repeat it back, in order."}</div>
+        <div class="path-grid" id="vgGrid" style="grid-template-columns:repeat(4,1fr);"></div>
+      `;
+      const grid = document.getElementById("vgGrid");
+      TILES.forEach((emoji, idx)=>{
+        const btn = document.createElement("button");
+        btn.className = "path-card";
+        btn.type = "button";
+        btn.style.cssText = "text-align:center; font-size:28px; padding:16px 6px;";
+        btn.id = "vgTile" + idx;
+        btn.textContent = emoji;
+        btn.disabled = phase !== "input";
+        btn.addEventListener("click", ()=> onTileClick(idx));
+        grid.appendChild(btn);
+      });
+      if(phase === "watch") playSequence(0);
+    }
+    function flashTile(idx, cb){
+      const el = document.getElementById("vgTile" + idx);
+      if(el) el.style.background = "var(--accent)";
+      setTimeout(()=>{
+        if(el) el.style.background = "";
+        setTimeout(cb, 200);
+      }, 450);
+    }
+    function playSequence(step){
+      if(step >= sequence.length){ phase = "input"; render(); return; }
+      flashTile(sequence[step], ()=> playSequence(step+1));
+    }
+    function onTileClick(idx){
+      if(phase !== "input") return;
+      if(idx === sequence[inputIndex]){
+        correctCount++;
+        inputIndex++;
+        if(inputIndex >= sequence.length) finish(true);
+      } else {
+        finish(false);
+      }
+    }
+    function finish(fullSuccess){
+      phase = "done";
+      const gain = fullSuccess ? 5 : Math.min(4, 2 + correctCount);
+      applyEffects(state, { health: gain, happiness: gain });
+      const note = fullSuccess
+        ? "You actually unplugged completely. You come back sharp and rested."
+        : "You tried to relax, but kept checking your phone. Still, it helped some.";
+      setTimeout(()=> onComplete(note), 300);
+    }
+    render();
+  }
+
   function resolveCareerAction(actionId){
     const j = state.job;
     if(actionId === "retire"){ renderLegacy("retired"); return; }
@@ -1738,38 +1939,28 @@
 
     if(actionId === "grind"){
       applyEffects(state, { skill:6, health:-2, happiness:-2 });
-      closeCareerYear("You pushed hard this year. It shows in your numbers — and in how tired you are.");
+      maybeTriggerBonusCoding("You pushed hard this year. It shows in your numbers — and in how tired you are.");
       return;
     }
     if(actionId === "project"){
       const challenge = pickFromPool(CAREER_CHALLENGES, state.usedChallenges);
       renderCodingTask(challenge, (passRate)=>{
         applyEffects(state, { skill: Math.round(passRate*10) });
+        j.yearsSinceCodeTask = 0;
         closeCareerYear(passRate === 1 ? "You shipped it clean. The desk noticed." : passRate > 0 ? "Mixed results, but you learned fast." : "It didn't work, and everyone saw. Rough one.");
       });
       return;
     }
     if(actionId === "network"){
-      applyEffects(state, { charisma:2 });
-      let note = "You spent the year building relationships.";
-      if(Math.random() < 0.3){ applyEffects(state, { money:1000 }); note += " A contact tips you off to a small opportunity."; }
-      closeCareerYear(note);
+      renderNetworkMiniGame((note)=> maybeTriggerBonusCoding(note));
       return;
     }
     if(actionId === "raise"){
-      const odds = (j.skill + state.stats.charisma*3) / 130;
-      if(Math.random() < odds){
-        j._raiseBoost = 0.10;
-        closeCareerYear("You made your case and it landed. Expect a bigger number this year.");
-      } else {
-        applyEffects(state, { happiness:-1 });
-        closeCareerYear("They said not yet. A little deflating, but no real damage done.");
-      }
+      renderRaiseMiniGame((note)=> maybeTriggerBonusCoding(note));
       return;
     }
     if(actionId === "vacation"){
-      applyEffects(state, { health:4, happiness:4 });
-      closeCareerYear("You actually took real time off. You needed it.");
+      renderVacationMiniGame((note)=> maybeTriggerBonusCoding(note));
       return;
     }
     if(actionId === "jobhop"){
@@ -1783,7 +1974,7 @@
       j.levelIndex = 0;
       j.yearsAtLevel = 0;
       j.title = newTrack.levels[0].title;
-      closeCareerYear(`You jumped firms and landed at a ${escapeHtml(newTrack.name)} shop. Fresh start, higher ceiling.`);
+      maybeTriggerBonusCoding(`You jumped firms and landed at a ${escapeHtml(newTrack.name)} shop. Fresh start, higher ceiling.`);
       return;
     }
   }

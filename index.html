@@ -202,6 +202,33 @@
     border:1px solid var(--line); background:var(--surface-2); color:var(--ink);
   }
   textarea#codeEditor:focus-visible{ outline:2px solid var(--focus); }
+
+  .code-display{
+    font:13.5px/1.6 var(--mono); background:var(--surface-2); color:var(--ink);
+    border:1px solid var(--line); border-radius:10px; padding:12px 14px;
+    white-space:pre; overflow-x:auto; margin:0;
+  }
+  .code-display .blank-slot{
+    display:inline-block; min-width:60%; border-bottom:2px dashed var(--info);
+    color:var(--info); font-style:italic;
+  }
+  .code-display .blank-slot.filled{ color:var(--ink); font-style:normal; border-bottom-color:var(--profit); }
+  .blank-builder{ margin-top:14px; }
+  .blank-builder .blank-label{ font-size:12.5px; color:var(--ink-soft); margin-bottom:6px; }
+  .built-line{
+    font:13.5px/1.5 var(--mono); min-height:20px; background:var(--surface);
+    border:1px dashed var(--line); border-radius:8px; padding:8px 10px; margin-bottom:8px;
+    color:var(--ink);
+  }
+  .built-line .placeholder{ color:var(--ink-soft); font-style:italic; }
+  .word-bank{ display:flex; flex-wrap:wrap; gap:6px; }
+  .word-chip{
+    font:13.5px var(--mono); background:var(--surface-2); color:var(--ink);
+    border:1px solid var(--line); border-radius:6px; padding:5px 9px; cursor:pointer;
+  }
+  .word-chip:hover{ background:var(--bg); }
+  .word-chip:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+  .blank-tools{ margin-top:6px; }
   .test-row{
     display:flex; justify-content:space-between; gap:10px; padding:7px 0;
     border-bottom:1px solid var(--line); font-size:12.5px;
@@ -329,59 +356,70 @@
     { id:"research", label:"Assist a professor's research", sub:"+Intelligence, +Discipline", effects:{intelligence:2, discipline:2} }
   ];
 
+  // Coding tasks are built from a fixed template (given code) plus one or more "blanks" —
+  // each blank is a shuffled word bank the player taps, in order, to build one line of real
+  // Python. No typing required. Template lines are either plain given code ({t:"..."}) or a
+  // blank slot ({b:1, indent:"    "}) that gets replaced by that blank's tapped-out line.
   const SCHOOL_CODE_TASKS = {
     fixbug: {
       title:"Intro to Programming: Fix the Bug", fnName:"average_price",
-      prompt:"This function should add up a list of prices and divide by how many there are, to get the average. Instead it crashes. Find and fix the bug.",
-      starter:
-`def average_price(prices):
-    total = 0
-    for i in range(len(prices) + 1):
-        total += prices[i]
-    return total / len(prices)`,
+      prompt:"This function should add up a list of prices and divide by how many there are, to get the average. Instead it crashes. The loop line is broken — tap the words below to rebuild it correctly.",
+      template:[
+        {t:"def average_price(prices):"},
+        {t:"    total = 0"},
+        {b:1, indent:"    "},
+        {t:"        total += prices[i]"},
+        {t:"    return total / len(prices)"}
+      ],
+      blanks:{ 1: ["for","i","in","range","(","len","(","prices",")",")",":"] },
       tests:[
         { args:[[10,20,30]], expected:20 },
         { args:[[5,5,5,5]], expected:5 },
         { args:[[2,4]], expected:3 }
       ],
-      hint:"Look at the range() in the loop. What index is it trying to read when i equals len(prices)?"
+      hint:"It should loop from 0 up to (but not including) how many prices there are."
     },
     besttrade: {
       title:"Capstone Project: Best Trade", fnName:"best_profit",
-      prompt:"Write best_profit(prices): if you bought on one day and sold on a later day, what's the most profit you could make? Return 0 if there's no way to profit. The loop and the two trackers are already set up — you just need to fill in the two updates.",
-      starter:
-`def best_profit(prices):
-    lowest_so_far = prices[0]
-    best = 0
-    for price in prices:
-        profit_today = price - lowest_so_far
-        # your code here: if profit_today is bigger than best, set best = profit_today
-
-        # your code here: if price is lower than lowest_so_far, set lowest_so_far = price
-
-    return best`,
+      prompt:"Write best_profit(prices): if you bought on one day and sold on a later day, what's the most profit you could make? Return 0 if there's no way to profit. The loop and the two trackers are already set up — tap the words to build the two missing lines.",
+      template:[
+        {t:"def best_profit(prices):"},
+        {t:"    lowest_so_far = prices[0]"},
+        {t:"    best = 0"},
+        {t:"    for price in prices:"},
+        {t:"        profit_today = price - lowest_so_far"},
+        {b:1, indent:"        "},
+        {b:2, indent:"        "},
+        {t:"    return best"}
+      ],
+      blanks:{
+        1: ["if","profit_today",">","best",":","best","=","profit_today"],
+        2: ["if","price","<","lowest_so_far",":","lowest_so_far","=","price"]
+      },
       tests:[
         { args:[[7,1,5,3,6,4]], expected:5 },
         { args:[[7,6,4,3,1]], expected:0 },
         { args:[[1,2]], expected:1 },
         { args:[[2,4,1,7]], expected:6 }
       ],
-      hint:"Every day, two questions: would selling today beat your best profit so far? And is today's price a new low?"
+      hint:"Blank 1: would selling today beat your best profit so far? Blank 2: is today's price a new low?"
     }
   };
 
   // On-the-job coding tasks, picked from as part of the "Take on a hard project" action.
   const CAREER_CHALLENGES = [
     { title:"3AM Incident: Fix the VWAP", fnName:"vwap",
-      prompt:"This function should weight each price by how many shares traded that day (the volume) — days with more trading should count more. It's not doing that. Find and fix the bug in vwap(prices, volumes).",
-      starter:
-`def vwap(prices, volumes):
-    numerator = 0
-    denominator = 0
-    for i in range(len(prices)):
-        numerator += prices[i]
-        denominator += volumes[i]
-    return numerator / denominator`,
+      prompt:"This function should weight each price by how many shares traded that day (the volume) — days with more trading should count more. It's not doing that. Tap the words to rebuild the correct line.",
+      template:[
+        {t:"def vwap(prices, volumes):"},
+        {t:"    numerator = 0"},
+        {t:"    denominator = 0"},
+        {t:"    for i in range(len(prices)):"},
+        {b:1, indent:"        "},
+        {t:"        denominator += volumes[i]"},
+        {t:"    return numerator / denominator"}
+      ],
+      blanks:{ 1: ["numerator","+=","prices","[","i","]","*","volumes","[","i","]"] },
       tests:[
         { args:[[10,20,30],[100,100,100]], expected:20, tol:0.01 },
         { args:[[10,20],[300,100]], expected:12.5, tol:0.01 },
@@ -389,18 +427,19 @@
       ],
       hint:"Each price should get multiplied by its own volume before it's added to the total." },
     { title:"Risk Wants: Max Drawdown", fnName:"max_drawdown",
-      prompt:"Write a function that finds the biggest drop from a peak, as a percent. Example: prices go 100 → 130 → 80. The peak was 130, and it fell to 80 — that's about a 38% drawdown. The peak-tracking is already written — just fill in the one line that remembers the biggest drop.",
-      starter:
-`def max_drawdown(prices):
-    peak = prices[0]
-    biggest_drop = 0
-    for price in prices:
-        if price > peak:
-            peak = price
-        drop = (peak - price) / peak
-        # your code here: if drop is bigger than biggest_drop, set biggest_drop = drop
-
-    return biggest_drop * 100`,
+      prompt:"Write a function that finds the biggest drop from a peak, as a percent. Example: prices go 100 → 130 → 80. The peak was 130, and it fell to 80 — that's about a 38% drawdown. The peak-tracking is already written — tap the words to build the one line that remembers the biggest drop.",
+      template:[
+        {t:"def max_drawdown(prices):"},
+        {t:"    peak = prices[0]"},
+        {t:"    biggest_drop = 0"},
+        {t:"    for price in prices:"},
+        {t:"        if price > peak:"},
+        {t:"            peak = price"},
+        {t:"        drop = (peak - price) / peak"},
+        {b:1, indent:"        "},
+        {t:"    return biggest_drop * 100"}
+      ],
+      blanks:{ 1: ["if","drop",">","biggest_drop",":","biggest_drop","=","drop"] },
       tests:[
         { args:[[100,120,90,110,80,130]], expected:33.33, tol:0.5 },
         { args:[[100,110,120,130]], expected:0, tol:0.01 },
@@ -408,21 +447,21 @@
       ],
       hint:"You're already computing today's drop from the peak — just keep the biggest one you've seen so far." },
     { title:"Desk Check: Count the Up Days", fnName:"count_up_days",
-      prompt:"Write count_up_days(prices): count how many days the price closed higher than the day before.",
-      starter:
-`def count_up_days(prices):
-    count = 0
-    for i in range(1, len(prices)):
-        pass
-        # your code here: if prices[i] is higher than prices[i - 1], add 1 to count
-
-    return count`,
+      prompt:"Write count_up_days(prices): count how many days the price closed higher than the day before. Tap the words to build the one line you need.",
+      template:[
+        {t:"def count_up_days(prices):"},
+        {t:"    count = 0"},
+        {t:"    for i in range(1, len(prices)):"},
+        {b:1, indent:"        "},
+        {t:"    return count"}
+      ],
+      blanks:{ 1: ["if","prices","[","i","]",">","prices","[","i","-","1","]",":","count","+=","1"] },
       tests:[
         { args:[[100,105,102,110,108,120]], expected:3 },
         { args:[[50,40,30,20,10]], expected:0 },
         { args:[[10,20,30,40]], expected:3 }
       ],
-      hint:"Compare each price to the one right before it: prices[i] vs. prices[i - 1]. You can delete the pass once you add your line." }
+      hint:"Compare each price to the one right before it: prices[i] vs. prices[i - 1]." }
   ];
 
   // Realistic 2025 U.S. multi-year comp ladders per track.
@@ -507,6 +546,17 @@
           } }
       ] }
   ];
+
+  // Same tap-the-words template/blank format as the other coding tasks. This one always
+  // trades on yesterday's move: go long if the price rose, short if it fell.
+  const FUND_SIGNAL_TEMPLATE = [
+    {t:"def signal(prices, i):"},
+    {t:"    if i == 0:"},
+    {t:"        return 0"},
+    {b:1, indent:"    "},
+    {t:"    return -1"}
+  ];
+  const FUND_SIGNAL_BLANKS = { 1: ["if","prices","[","i","]",">","prices","[","i","-","1","]",":","return","1"] };
 
   const FUND_STRATEGIES = [
     { id:"momentum", name:"Systematic Momentum", blurb:"Ride trends. Strong in trending markets, painful in choppy ones.", mod:2, bullBonus:5, bearPenalty:-3 },
@@ -958,7 +1008,12 @@
       return stmts;
     }
     function parseBlock(){
-      expect(":"); expect("NEWLINE"); expect("INDENT");
+      expect(":");
+      if(!at("NEWLINE")){
+        // single-line suite, e.g. "if x: y = 1"
+        return [parseSimpleStatement()];
+      }
+      expect("NEWLINE"); expect("INDENT");
       const stmts = [];
       while(!at("DEDENT") && !at("EOF")){ stmts.push(parseStatement()); skipNewlines(); }
       expect("DEDENT");
@@ -1429,59 +1484,150 @@
     `).join("");
   }
 
-  function renderCodingTask(cfg, onComplete){
-    card.innerHTML = `
-      ${lifeHud(state, "Coding Task")}
-      <div class="eyebrow">${escapeHtml(cfg.title)}</div>
-      <div class="prompt" style="font-size:16px;">${escapeHtml(cfg.prompt)}</div>
-      <textarea id="codeEditor" spellcheck="false">${escapeHtml(cfg.starter)}</textarea>
-      <div class="row" style="margin-top:10px;">
-        <button class="btn secondary" id="runTestsBtn" type="button">▶ Run Tests</button>
-        <button class="link-btn" id="hintBtn" type="button">Show hint</button>
-      </div>
-      <div id="testResults" style="margin-top:6px;"></div>
-      <div class="row right" style="margin-top:14px;">
-        <button class="btn" id="submitBtn">Submit</button>
-      </div>
-      <div id="feedbackSlot"></div>
-    `;
-    document.getElementById("hintBtn").addEventListener("click", (e)=>{
-      const results = document.getElementById("testResults");
-      const p = document.createElement("p");
-      p.style.cssText = "color:var(--ink-soft); font-size:13.5px; margin-top:8px;";
-      p.textContent = "💡 " + cfg.hint;
-      results.appendChild(p);
-      e.currentTarget.disabled = true;
-    });
-    document.getElementById("runTestsBtn").addEventListener("click", ()=>{
-      const code = document.getElementById("codeEditor").value;
-      const { results, error } = runUserTests(code, cfg.fnName, cfg.tests);
-      renderTestResults("testResults", results, error);
-    });
-    document.getElementById("submitBtn").addEventListener("click", (e)=>{
-      const code = document.getElementById("codeEditor").value;
-      const { results, error } = runUserTests(code, cfg.fnName, cfg.tests);
-      renderTestResults("testResults", results, error);
-      const passed = results.filter(r=>r.pass).length;
-      const total = results.length;
-      const passRate = passed/total;
-      document.getElementById("codeEditor").disabled = true;
-      document.getElementById("runTestsBtn").disabled = true;
-      e.currentTarget.disabled = true;
-      const gainedInt = Math.round(1 + passRate*2);
-      const gainedSkill = Math.round(passRate*10);
-      applyEffects(state, { intelligence: gainedInt, skill: gainedSkill });
-      logEvent(state, `${cfg.title}: ${passed}/${total} tests passing`);
-      const fb = document.getElementById("feedbackSlot");
-      fb.innerHTML = `
-        <div class="feedback ${passed===total?"good":passed>0?"":"bad"}">
-          <div>${passed===total?"✅ All tests passed. Clean work.":passed>0?"🟡 Partial credit — some tests failed.":"❌ Didn't work, but you learned something."}</div>
-        </div>
-        <div class="row right" style="margin-top:14px;">
-          <button class="btn" id="doneBtn">Continue →</button>
+  // Builds the "tap the words" UI for a template+blanks coding task. Shared by school/
+  // career coding tasks and (via a thin wrapper) the fund's trading-signal task.
+  // Shared "tap the words" mechanics for template+blanks coding tasks: build a fresh
+  // shuffled bank per blank, assemble real Python from whatever's been tapped, and render
+  // a read-only code display plus one tap-to-build word bank per blank.
+  function makeBlankState(blanks){
+    const blankState = {};
+    Object.keys(blanks).forEach(id => { blankState[id] = { bank: shuffle(blanks[id].slice()), built: [] }; });
+    return blankState;
+  }
+  function blanksAllFilled(blankState){
+    return Object.keys(blankState).every(id => blankState[id].bank.length === 0);
+  }
+  function assembleFromTemplate(template, blankState){
+    return template.map(line=>{
+      if(line.t !== undefined) return line.t;
+      return line.indent + blankState[line.b].built.join(" ");
+    }).join("\n");
+  }
+  function codeDisplayHtml(template, blankState){
+    return template.map(line=>{
+      if(line.t !== undefined) return escapeHtml(line.t);
+      const st = blankState[line.b];
+      const inner = st.built.length ? escapeHtml(st.built.join(" ")) : "your code here";
+      return escapeHtml(line.indent) + `<span class="blank-slot${st.built.length?" filled":""}">${inner}</span>`;
+    }).join("\n");
+  }
+  function renderBlankBuilders(containerId, blanks, blankState, onChange){
+    const wrap = document.getElementById(containerId);
+    const blankIds = Object.keys(blanks);
+    blankIds.forEach(id=>{
+      const st = blankState[id];
+      const box = document.createElement("div");
+      box.className = "blank-builder";
+      const label = blankIds.length > 1 ? `Blank ${id} — tap the words in order:` : "Tap the words in order:";
+      box.innerHTML = `
+        <div class="blank-label">${escapeHtml(label)}</div>
+        <div class="built-line">${st.built.length ? escapeHtml(st.built.join(" ")) : `<span class="placeholder">(tap words below)</span>`}</div>
+        <div class="word-bank"></div>
+        <div class="row blank-tools">
+          <button class="link-btn" type="button" data-act="undo" ${st.built.length?"":"disabled"}>Undo</button>
+          <button class="link-btn" type="button" data-act="clear" ${st.built.length?"":"disabled"}>Clear</button>
         </div>
       `;
-      document.getElementById("doneBtn").addEventListener("click", ()=> onComplete(passRate));
+      wrap.appendChild(box);
+      const bankWrap = box.querySelector(".word-bank");
+      st.bank.forEach((tok, idx)=>{
+        const chip = document.createElement("button");
+        chip.className = "word-chip";
+        chip.type = "button";
+        chip.textContent = tok;
+        chip.addEventListener("click", ()=>{
+          st.built.push(tok);
+          st.bank.splice(idx, 1);
+          onChange();
+        });
+        bankWrap.appendChild(chip);
+      });
+      box.querySelector('[data-act="undo"]').addEventListener("click", ()=>{
+        if(!st.built.length) return;
+        st.bank.push(st.built.pop());
+        onChange();
+      });
+      box.querySelector('[data-act="clear"]').addEventListener("click", ()=>{
+        st.bank = shuffle(blanks[id].slice());
+        st.built = [];
+        onChange();
+      });
+    });
+  }
+
+  function runWordBankTask(opts){
+    const { title, prompt, template, blanks, fnName, tests, hint, onComplete } = opts;
+    const blankState = makeBlankState(blanks);
+
+    function render(){
+      const ready = blanksAllFilled(blankState);
+      card.innerHTML = `
+        ${lifeHud(state, "Coding Task")}
+        <div class="eyebrow">${escapeHtml(title)}</div>
+        <div class="prompt" style="font-size:16px;">${escapeHtml(prompt)}</div>
+        <pre class="code-display">${codeDisplayHtml(template, blankState)}</pre>
+        <div id="blankBuilders"></div>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn secondary" id="runTestsBtn" type="button" ${ready?"":"disabled"}>▶ Run Tests</button>
+          <button class="link-btn" id="hintBtn" type="button">Show hint</button>
+        </div>
+        ${ready ? "" : `<div style="font-size:12.5px; color:var(--ink-soft); margin-top:6px;">Tap words to fill in every blank before running your code.</div>`}
+        <div id="testResults" style="margin-top:6px;"></div>
+        <div class="row right" style="margin-top:14px;">
+          <button class="btn" id="submitBtn" ${ready?"":"disabled"}>Submit</button>
+        </div>
+        <div id="feedbackSlot"></div>
+      `;
+      renderBlankBuilders("blankBuilders", blanks, blankState, render);
+
+      document.getElementById("hintBtn").addEventListener("click", (e)=>{
+        const results = document.getElementById("testResults");
+        const p = document.createElement("p");
+        p.style.cssText = "color:var(--ink-soft); font-size:13.5px; margin-top:8px;";
+        p.textContent = "💡 " + hint;
+        results.appendChild(p);
+        e.currentTarget.disabled = true;
+      });
+      if(ready){
+        document.getElementById("runTestsBtn").addEventListener("click", ()=>{
+          const { results, error } = runUserTests(assembleFromTemplate(template, blankState), fnName, tests);
+          renderTestResults("testResults", results, error);
+        });
+        document.getElementById("submitBtn").addEventListener("click", (e)=>{
+          const { results, error } = runUserTests(assembleFromTemplate(template, blankState), fnName, tests);
+          renderTestResults("testResults", results, error);
+          const passed = results.filter(r=>r.pass).length;
+          const total = results.length;
+          const passRate = passed/total;
+          document.querySelectorAll(".word-chip, .blank-tools button, #runTestsBtn").forEach(el=>el.disabled = true);
+          e.currentTarget.disabled = true;
+          const fb = document.getElementById("feedbackSlot");
+          fb.innerHTML = `
+            <div class="feedback ${passed===total?"good":passed>0?"":"bad"}">
+              <div>${passed===total?"✅ All tests passed. Clean work.":passed>0?"🟡 Partial credit — some tests failed.":"❌ Didn't work, but you learned something."}</div>
+            </div>
+            <div class="row right" style="margin-top:14px;">
+              <button class="btn" id="doneBtn">Continue →</button>
+            </div>
+          `;
+          document.getElementById("doneBtn").addEventListener("click", ()=> onComplete(passRate));
+        });
+      }
+    }
+    render();
+  }
+
+  function renderCodingTask(cfg, onComplete){
+    runWordBankTask({
+      title: cfg.title, prompt: cfg.prompt, template: cfg.template, blanks: cfg.blanks,
+      fnName: cfg.fnName, tests: cfg.tests, hint: cfg.hint,
+      onComplete: (passRate)=>{
+        const gainedInt = Math.round(1 + passRate*2);
+        const gainedSkill = Math.round(passRate*10);
+        applyEffects(state, { intelligence: gainedInt, skill: gainedSkill });
+        logEvent(state, `${cfg.title}: ${Math.round(passRate*100)}% tests passing`);
+        onComplete(passRate);
+      }
     });
   }
 
@@ -1922,68 +2068,71 @@
 
   function renderFundYearCode(){
     const f = state.fund;
-    card.innerHTML = `
-      ${fundHud("Code Your Alpha")}
-      <div class="eyebrow">Write: Trading Signal</div>
-      <div class="prompt" style="font-size:16px;">Write signal(prices, i): look at today's price
-        (prices[i]) and decide what to do tomorrow — <span class="num">1</span> to go long (you think it'll rise),
-        <span class="num">-1</span> to go short (you think it'll fall), or <span class="num">0</span> to stay flat.
-        Called once per day across a ${f._pendingPrices.length}-day year.</div>
-      <textarea id="codeEditor" spellcheck="false">def signal(prices, i):
-    # prices: list of closes from day 0 through today (index i)
-    today = prices[i]
-
-    # example idea: compare today to yesterday
-    # yesterday = prices[i - 1] if i > 0 else today
-
-    return 0</textarea>
-      <div class="row" style="margin-top:10px;">
-        <button class="btn secondary" id="runTestsBtn" type="button">▶ Run Backtest</button>
-        <button class="link-btn" id="hintBtn" type="button">Show hint</button>
-      </div>
-      <div id="testResults" style="margin-top:6px;"></div>
-      <div class="row right" style="margin-top:14px;">
-        <button class="btn" id="submitBtn" disabled>Submit & Close the Year</button>
-      </div>
-    `;
+    const blankState = makeBlankState(FUND_SIGNAL_BLANKS);
     let lastResult = null;
-    document.getElementById("hintBtn").addEventListener("click", (e)=>{
-      const results = document.getElementById("testResults");
-      const p = document.createElement("p");
-      p.style.cssText = "color:var(--ink-soft); font-size:13.5px; margin-top:8px;";
-      p.textContent = "💡 A simple momentum idea: go long if today's price is above yesterday's, short if below. Mean-reversion is the opposite bet.";
-      results.appendChild(p);
-      e.currentTarget.disabled = true;
-    });
-    function runBacktest(){
-      const code = document.getElementById("codeEditor").value;
-      const result = runSignalBacktest(code, f._pendingPrices);
-      const box = document.getElementById("testResults");
-      if(result.error){
-        box.innerHTML = `<p style="color:var(--loss); font-size:13.5px;">⚠ ${escapeHtml(result.error)}</p>`;
-        document.getElementById("submitBtn").disabled = true;
-        lastResult = null;
-        return;
-      }
-      lastResult = result;
-      box.innerHTML = `
-        <div class="test-row"><span>Strategy return (this backtest)</span><span class="num" style="color:${result.totalReturn>=0?'var(--profit)':'var(--loss)'}">${(result.totalReturn*100).toFixed(1)}%</span></div>
-        <div class="test-row"><span>Buy & hold return</span><span class="num">${(result.buyHold*100).toFixed(1)}%</span></div>
-        <div class="test-row"><span>Max drawdown</span><span class="num">${(result.maxDD*100).toFixed(1)}%</span></div>
-        <div class="test-row"><span>Sharpe (backtest)</span><span class="num">${result.sharpe.toFixed(2)}</span></div>
+
+    function render(){
+      const ready = blanksAllFilled(blankState);
+      card.innerHTML = `
+        ${fundHud("Code Your Alpha")}
+        <div class="eyebrow">Write: Trading Signal</div>
+        <div class="prompt" style="font-size:16px;">Write signal(prices, i): look at today's price
+          (prices[i]) and decide what to do tomorrow — <span class="num">1</span> to go long (you think it'll rise),
+          <span class="num">-1</span> to go short (you think it'll fall), or <span class="num">0</span> to stay flat.
+          Called once per day across a ${f._pendingPrices.length}-day year.</div>
+        <pre class="code-display">${codeDisplayHtml(FUND_SIGNAL_TEMPLATE, blankState)}</pre>
+        <div id="blankBuilders"></div>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn secondary" id="runTestsBtn" type="button" ${ready?"":"disabled"}>▶ Run Backtest</button>
+          <button class="link-btn" id="hintBtn" type="button">Show hint</button>
+        </div>
+        ${ready ? "" : `<div style="font-size:12.5px; color:var(--ink-soft); margin-top:6px;">Tap words to fill in the blank before running your backtest.</div>`}
+        <div id="testResults" style="margin-top:6px;"></div>
+        <div class="row right" style="margin-top:14px;">
+          <button class="btn" id="submitBtn" disabled>Submit & Close the Year</button>
+        </div>
       `;
-      document.getElementById("submitBtn").disabled = false;
+      renderBlankBuilders("blankBuilders", FUND_SIGNAL_BLANKS, blankState, render);
+
+      document.getElementById("hintBtn").addEventListener("click", (e)=>{
+        const results = document.getElementById("testResults");
+        const p = document.createElement("p");
+        p.style.cssText = "color:var(--ink-soft); font-size:13.5px; margin-top:8px;";
+        p.textContent = "💡 This builds a momentum strategy: go long if today's price is above yesterday's, otherwise go short.";
+        results.appendChild(p);
+        e.currentTarget.disabled = true;
+      });
+
+      function runBacktest(){
+        const code = assembleFromTemplate(FUND_SIGNAL_TEMPLATE, blankState);
+        const result = runSignalBacktest(code, f._pendingPrices);
+        const box = document.getElementById("testResults");
+        if(result.error){
+          box.innerHTML = `<p style="color:var(--loss); font-size:13.5px;">⚠ ${escapeHtml(result.error)}</p>`;
+          document.getElementById("submitBtn").disabled = true;
+          lastResult = null;
+          return;
+        }
+        lastResult = result;
+        box.innerHTML = `
+          <div class="test-row"><span>Strategy return (this backtest)</span><span class="num" style="color:${result.totalReturn>=0?'var(--profit)':'var(--loss)'}">${(result.totalReturn*100).toFixed(1)}%</span></div>
+          <div class="test-row"><span>Buy & hold return</span><span class="num">${(result.buyHold*100).toFixed(1)}%</span></div>
+          <div class="test-row"><span>Max drawdown</span><span class="num">${(result.maxDD*100).toFixed(1)}%</span></div>
+          <div class="test-row"><span>Sharpe (backtest)</span><span class="num">${result.sharpe.toFixed(2)}</span></div>
+        `;
+        document.getElementById("submitBtn").disabled = false;
+      }
+      if(ready) document.getElementById("runTestsBtn").addEventListener("click", runBacktest);
+      document.getElementById("submitBtn").addEventListener("click", (e)=>{
+        if(!lastResult) return;
+        document.querySelectorAll(".word-chip, .blank-tools button, #runTestsBtn").forEach(el=>el.disabled = true);
+        e.currentTarget.disabled = true;
+        let score = 50 + (lastResult.totalReturn - lastResult.buyHold)*180 + lastResult.sharpe*8 - lastResult.maxDD*40;
+        score = Math.max(0, Math.min(100, Math.round(score)));
+        closeFundYear(score);
+      });
     }
-    document.getElementById("runTestsBtn").addEventListener("click", runBacktest);
-    document.getElementById("submitBtn").addEventListener("click", (e)=>{
-      if(!lastResult) return;
-      document.getElementById("codeEditor").disabled = true;
-      document.getElementById("runTestsBtn").disabled = true;
-      e.currentTarget.disabled = true;
-      let score = 50 + (lastResult.totalReturn - lastResult.buyHold)*180 + lastResult.sharpe*8 - lastResult.maxDD*40;
-      score = Math.max(0, Math.min(100, Math.round(score)));
-      closeFundYear(score);
-    });
+    render();
   }
 
   function closeFundYear(score){
